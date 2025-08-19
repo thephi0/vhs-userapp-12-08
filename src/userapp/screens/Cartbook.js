@@ -111,8 +111,6 @@ function Cartbook({navigation}) {
     const planPrice = parseFloat(item?.planPrice);
     const quantity = parseInt(item?.qty);
 
-
-
     if (!isNaN(offerPrice) && !isNaN(quantity)) {
       const subtotal = planPrice * quantity - offerPrice * quantity;
 
@@ -161,6 +159,11 @@ function Cartbook({navigation}) {
   const [cancelationModel, setcancelationModel] = useState(false);
   const [savecity, setsavecity] = useState('');
 
+  // =========== START: MODIFICATION - New modal states ===========
+  const [isDateTimeModalVisible, setDateTimeModalVisible] = useState(false);
+  const [isAddressModalVisible, setAddressModalVisible] = useState(false);
+  // =========== END: MODIFICATION ===========
+
   const [showDatePickerSingle, setShowDatePickerSingle] = useState(false);
   const [discountedTotal, setDiscountedTotal] = useState(0);
   const [checked, setChecked] = useState('');
@@ -169,8 +172,6 @@ function Cartbook({navigation}) {
   const [voucherdata, setvoucherdata] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [isSlotModalVisible, setSlotModalVisible] = useState(false);
-  const [selectedSlotText, setSelectedSlotText] = useState('');
   const [addondata, setaddondata] = useState([]);
   const bottomSheet = useRef();
   const route = useRoute();
@@ -181,7 +182,6 @@ function Cartbook({navigation}) {
   const today = moment();
   const tomorrow = moment().add(1, 'days');
   const nextTwoDays = moment().add(2, 'days');
-  const nextthreeDays = moment().add(3, 'days');
 
   const [date, setDate] = useState(false);
   const [Coupancode, setCoupancode] = useState('');
@@ -290,11 +290,13 @@ function Cartbook({navigation}) {
 
       if (response.status === 201) {
         setFulladd(response.data);
-        bottomSheet.current.show();
         closeModal();
         setmapModalVisible(false);
         setModalVisible(false);
         getaddress();
+        // After adding address, close the address modal and open payment sheet
+        setAddressModalVisible(false);
+        bottomSheet.current.show();
       }
     } catch (error) {
       console.error(error);
@@ -353,6 +355,9 @@ function Cartbook({navigation}) {
       latitude: i.markerCoordinate?.latitude,
       longitude: i.markerCoordinate?.longitude,
     });
+    // After selecting an address, close the modal and open the payment sheet
+    setAddressModalVisible(false);
+    bottomSheet.current.show();
   };
 
   const mapRef = useRef(null);
@@ -403,12 +408,12 @@ function Cartbook({navigation}) {
   const handleDayPress = day => {
     setSelectedDate(day.dateString);
     closeCalendar();
+    setDate(true); // To show the selected date
   };
 
   const openCalendar = () => {
     setIsCalendarOpen(true);
     setcalenderModel(true);
-    setDate(true);
   };
 
   const closeCalendar = () => {
@@ -419,14 +424,8 @@ function Cartbook({navigation}) {
   const handleTabClick = date => {
     const formattedDate = date.format('YYYY-MM-DD');
     setSelectedDate(formattedDate);
-    setSlotModalVisible(true);
-    scrollToNext();
+    setDate(false); // Reset calendar date view
     console.log('Selected date:', formattedDate);
-  };
-  const scrollToNext = index => {
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({y: 100, animated: true});
-    }
   };
 
   const isTabActive = tab => {
@@ -573,7 +572,6 @@ function Cartbook({navigation}) {
 
   const handleSlotClick1 = (index, startTime) => {
     setSelectedSlotIndex(index);
-    setSelectedSlotText(`${startTime}`);
     setSelectedSlot(`${startTime}`);
   };
 
@@ -640,68 +638,100 @@ function Cartbook({navigation}) {
 
     let slots;
 
-    if (currentDate == dateToCompare) {
-      slots = filteredData || [];
-    } else if (currentDate > dateToCompare) {
+    if (currentDate.toDateString() === dateToCompare.toDateString()) {
       slots = filteredData1 || [];
     } else {
       slots = filteredData || [];
     }
+
     slots.sort((a, b) => {
-      const startTimeA = moment(a.startTime, 'hA');
-      const startTimeB = moment(b.startTime, 'hA');
-      return startTimeA.diff(startTimeB);
+      const timeA = moment(a.startTime, 'hh:mm A');
+      const timeB = moment(b.startTime, 'hh:mm A');
+      if (timeA.isBefore(timeB)) return -1;
+      if (timeA.isAfter(timeB)) return 1;
+      return 0;
     });
 
-    const groupedSlots = [];
+    const morningSlots = slots.filter(slot => {
+      const hour = moment(slot.startTime, 'hh:mm A').hour();
+      return hour < 12;
+    });
 
-    for (let i = 0; i < slots.length; i += 3) {
-      groupedSlots.push(slots.slice(i, i + 3));
-    }
+    const afternoonSlots = slots.filter(slot => {
+      const hour = moment(slot.startTime, 'hh:mm A').hour();
+      return hour >= 12;
+    });
 
-    return groupedSlots.map((slotGroup, groupIndex) => (
-      <View key={groupIndex} style={{flexDirection: 'row', marginBottom: 10}}>
-        {slotGroup.map((slot, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => {
-              Fulladd ? setModalVisible(false) : setModalVisible(true);
-              handleSlotClick1(
-                groupIndex * 3 + index,
-                slot.startTime,
-                slot.endTime,
-              );
-            }}
-            style={[
-              styles.slotBox,
-              {
-                backgroundColor:
-                  selectedSlotIndex === groupIndex * 3 + index
-                    ? 'darkred'
-                    : 'lightpink',
-                color:
-                  selectedSlotIndex === groupIndex * 3 + index
-                    ? 'white'
-                    : 'white',
-              },
-            ]}>
-            <Text
-              style={[
-                styles.boxText,
-                {
-                  color:
-                    selectedSlotIndex === groupIndex * 3 + index
-                      ? 'white'
-                      : 'black',
-                  fontFamily: 'Poppins-Medium',
-                },
-              ]}>
-              {slot.startTime}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    ));
+    return (
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {morningSlots.length > 0 && (
+          <View style={styles.slotSection}>
+            <View style={styles.slotHeader}>
+              <Feather name="sun" size={20} color="#777" />
+              <Text style={styles.slotHeaderText}>Morning</Text>
+            </View>
+            <View style={styles.slotGrid}>
+              {morningSlots.map((slot, index) => (
+                <TouchableOpacity
+                  key={`morning-${index}`}
+                  onPress={() =>
+                    handleSlotClick1(index, `${slot.startTime}`)
+                  }
+                  style={[
+                    styles.slotButton,
+                    selectedSlot === `${slot.startTime}` &&
+                      styles.selectedSlotButton,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.slotButtonText,
+                      selectedSlot === `${slot.startTime}` &&
+                        styles.selectedSlotButtonText,
+                    ]}>
+                    {slot.startTime}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {afternoonSlots.length > 0 && (
+          <View style={styles.slotSection}>
+            <View style={styles.slotHeader}>
+              <Feather name="sunset" size={20} color="#777" />
+              <Text style={styles.slotHeaderText}>Afternoon</Text>
+            </View>
+            <View style={styles.slotGrid}>
+              {afternoonSlots.map((slot, index) => (
+                <TouchableOpacity
+                  key={`afternoon-${index}`}
+                  onPress={() =>
+                    handleSlotClick1(
+                      morningSlots.length + index,
+                      `${slot.startTime}`,
+                    )
+                  }
+                  style={[
+                    styles.slotButton,
+                    selectedSlot === `${slot.startTime}` &&
+                      styles.selectedSlotButton,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.slotButtonText,
+                      selectedSlot === `${slot.startTime}` &&
+                        styles.selectedSlotButtonText,
+                    ]}>
+                    {slot.startTime}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    );
   };
 
   const calculateExpiryDate = (selectedDate, servicePeriod) => {
@@ -802,7 +832,8 @@ function Cartbook({navigation}) {
     setIsHomeClicked(false);
     setIsOthersClicked(false);
     setmapModalVisible(true);
-    setModalVisible(false);
+    // Keep the address modal open when opening the map
+    // setAddressModalVisible(false);
   };
 
   const [storagedata, setStoragedata] = useState([]);
@@ -885,7 +916,7 @@ function Cartbook({navigation}) {
   const searchLocation = async query => {
     try {
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&key=AIzaSyBF48uqsKVyp9P2NlDX-heBJksvvT_8Cqk`,
+        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&key=YOUR_GOOGLE_API_KEY`,
       );
 
       if (response.data && response.data.results.length > 0) {
@@ -948,7 +979,7 @@ function Cartbook({navigation}) {
   const getGeocodeFromCoordinates = async (lat, long) => {
     try {
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=AIzaSyBF48uqsKVyp9P2NlDX-heBJksvvT_8Cqk`,
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=YOUR_GOOGLE_API_KEY`,
       );
 
       if (response.data && response.data.results.length > 0) {
@@ -968,7 +999,7 @@ function Cartbook({navigation}) {
   const handleMarkerMove = async (latitude, longitude) => {
     try {
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyBF48uqsKVyp9P2NlDX-heBJksvvT_8Cqk`,
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_GOOGLE_API_KEY`,
       );
 
       if (response.data && response.data.results.length > 0) {
@@ -1002,7 +1033,6 @@ function Cartbook({navigation}) {
     fetchSavedData();
   }, [mapModalVisible]);
 
-  // =========== START: MODIFICATION 1 - Add new state and validation logic ===========
   const [canSubmitNewAddress, setCanSubmitNewAddress] = useState(false);
 
   useEffect(() => {
@@ -1023,7 +1053,6 @@ function Cartbook({navigation}) {
 
     setCanSubmitNewAddress(isFormValid);
   }, [address, platNo, landmark, saveAs, otherData]);
-  // =========== END: MODIFICATION 1 ===========
 
   const debouncedRegionChange = _debounce(region => {
     setMarkerCoordinate({
@@ -1056,10 +1085,7 @@ function Cartbook({navigation}) {
       /\{Service_name\}/g,
       MyCartItmes[0]?.service.serviceName,
     );
-    const slotTiming = serviceName.replace(
-      /\{Slot_timing\}/g,
-      selectedSlotText,
-    );
+    const slotTiming = serviceName.replace(/\{Slot_timing\}/g, selectedSlot);
     const serivePrice = slotTiming.replace(
       /\{Service_amount\}/g,
       couponDiscount,
@@ -1113,9 +1139,7 @@ function Cartbook({navigation}) {
   const vendorCharge = ab;
   const vendorCharge1 = bc;
 
-  const GST = isSelected
-    ? vendorCharge1 * 0.05
-    : vendorCharge * 0.05;
+  const GST = isSelected ? vendorCharge1 * 0.05 : vendorCharge * 0.05;
 
   const finalGST = GST.toFixed(2);
 
@@ -1128,12 +1152,10 @@ function Cartbook({navigation}) {
   const addtreatmentdetails = async () => {
     if (!selectedDate) {
       alert('Please select the Service date  ');
-
       return;
     }
-    if (!selectedSlotText) {
+    if (!selectedSlot) {
       alert('Please select the Service slot  ');
-
       return;
     }
     try {
@@ -1149,7 +1171,6 @@ function Cartbook({navigation}) {
             const config = {
               url: 'https://newapi.vijayhomeservicebengaluru.in/api/bookings/create',
               method: 'post',
-
               headers: {'content-type': 'application/json'},
               data: {
                 customerName: customerName ? customerName : user.name,
@@ -1161,19 +1182,16 @@ function Cartbook({navigation}) {
                 service_id: MyCartItmes[0]?.service?._id,
                 service_charge: finalGrandTotal,
                 date_of_service: selectedDate,
-                selected_slot_text: selectedSlotText,
+                selected_slot_text: selectedSlot,
                 serviceFrequency: '1',
                 start_date: selectedDate,
                 expiry_date: expiryDate,
                 amtstart_date: selectedDate,
                 amtexpiry_date: selectedDate,
-
                 type: 'userapp',
                 description: joinedPlanNames + joinedPlanaddonNames,
-
                 user_id: user?.id,
                 delivery_address: Fulladd,
-
                 discount_amount: isSelected ? discountAmount : 0,
                 amt_frequency: 1,
                 grand_total: finalGrandTotal,
@@ -1216,7 +1234,6 @@ function Cartbook({navigation}) {
             const config = {
               url: ' https://newapi.vijayhomeservicebengaluru.in/api/bookings/create',
               method: 'post',
-
               headers: {'content-type': 'application/json'},
               data: {
                 customerName: customerName ? customerName : user.name,
@@ -1228,7 +1245,7 @@ function Cartbook({navigation}) {
                 service_id: MyCartItmes[0]?.service?._id,
                 service_charge: finalGrandTotal,
                 date_of_service: selectedDate,
-                selected_slot_text: selectedSlotText,
+                selected_slot_text: selectedSlot,
                 serviceFrequency: '1',
                 start_date: selectedDate,
                 expiry_date: expiryDate,
@@ -1237,12 +1254,9 @@ function Cartbook({navigation}) {
                 amt_frequency: 1,
                 type: 'userapp',
                 description: joinedPlanNames + joinedPlanaddonNames,
-
                 user_id: user?.id,
                 delivery_address: Fulladd,
-
                 discount_amount: isSelected ? discountAmount : 0,
-
                 grand_total: finalGrandTotal,
                 payment_mode: 'cash',
                 total_amount: Carttotal + totaladdon1,
@@ -1295,1883 +1309,1596 @@ function Cartbook({navigation}) {
         <Loader />
       ) : (
         <View style={{flex: 1}}>
-          <View style={{flex: 1}}>
-            {useLortti && (
-              <LottieView
-                source={require('../../../assets/wallet.json')}
-                autoPlay
-                loop
-                width={'100%'}
-                height={'100%'}
-                style={{position: 'absolute', zIndex: 11}}
-              />
-            )}
+          {useLortti && (
+            <LottieView
+              source={require('../../../assets/wallet.json')}
+              autoPlay
+              loop
+              width={'100%'}
+              height={'100%'}
+              style={{position: 'absolute', zIndex: 11}}
+            />
+          )}
 
-            <View style={styles.container}>
-              <ScrollView style={{marginBottom: 30}} ref={scrollViewRef}>
-                <View style={{margin: 15}}>
-                  <Text
-                    style={{
-                      color: 'black',
-                      fontSize: 18,
-                      fontFamily: 'Poppins-Medium',
-                    }}>
-                    Service Details
-                  </Text>
+          <ScrollView style={styles.container} ref={scrollViewRef}>
+            <View style={{margin: 15}}>
+              <Text
+                style={{
+                  color: 'black',
+                  fontSize: 18,
+                  fontFamily: 'Poppins-Medium',
+                }}>
+                Service Details
+              </Text>
 
-                  <ScrollView>
-                    {MyCartItmes.map(item => (
-                      <View style={styles.card} key={item.id}>
-                        <View style={{flexDirection: 'row'}}>
-                          <View style={{flex: 0.7}}>
-                            <View style={{marginLeft: 5}}>
-                              <View></View>
-                              <Text
-                                style={{
-                                  fontSize: 16,
-                                  fontFamily: 'Poppins-Bold',
-                                  color: 'darkred',
-                                }}>
-                                {item.planName}
-                              </Text>
-                              <Text
-                                style={{
-                                  fontSize: 14,
-                                  fontFamily: 'Poppins-Bold',
-                                  color: 'black',
-                                }}>
-                                {item.service?.serviceName}
-                              </Text>
-
-                              <View style={{flexDirection: 'row'}}>
-                                <Text
-                                  style={{
-                                    marginLeft: 10,
-                                    color: 'grey',
-                                    textDecorationLine: 'line-through',
-                                  }}>
-                                  <FontAwesome name="rupee" size={14} />
-                                  {item.planPrice}
-                                </Text>
-                                <Text style={{marginLeft: 10, color: 'grey'}}>
-                                  <FontAwesome name="rupee" size={14} />{' '}
-                                  {item.offerprice}
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-                          <View style={{flex: 0.3}}>
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                justifyContent: 'center',
-                              }}>
-                              <FontAwesome
-                                name="rupee"
-                                size={14}
-                                color="black"
-                                style={{marginTop: 4}}
-                              />
-
-                              <Text
-                                style={{
-                                  textAlign: 'center',
-                                  marginLeft: 2,
-                                  color: 'black',
-                                  fontSize: 15,
-                                  fontFamily: 'Poppins-Medium',
-                                }}>
-                                {item.qty * item.offerprice}
-                              </Text>
-                            </View>
-
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                marginTop: 10,
-                                backgroundColor: 'green',
-                                elevation: 15,
-                                padding: 5,
-                                justifyContent: 'center',
-                                width: 100,
-                              }}>
-                              <TouchableOpacity
-                                style={{}}
-                                onPress={() => {
-                                  if (item.qty > 1) {
-                                    dispatch(removeMyCartItem(item));
-                                  } else {
-                                    dispatch(deleteMyCartItem(item.id));
-                                  }
-                                }}>
-                                <Text>
-                                  <AntDesign
-                                    name="minuscircleo"
-                                    size={18}
-                                    color="white"
-                                  />{' '}
-                                </Text>
-                              </TouchableOpacity>
-                              <Text style={{color: 'white', marginLeft: 5}}>
-                                {item.qty}
-                              </Text>
-
-                              <TouchableOpacity
-                                style={{marginLeft: 10}}
-                                onPress={() => handle(item)}>
-                                <Text>
-                                  <AntDesign
-                                    name="pluscircleo"
-                                    size={18}
-                                    color="white"
-                                  />
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {addondata.length > 0 ? (
-                  <View style={{backgroundColor: 'white', margin: 10}}>
-                    <Text
-                      style={{
-                        color: 'black',
-
-                        fontSize: 18,
-                        fontFamily: 'Poppins-Medium',
-                      }}>
-                      Frequently Added Together
-                    </Text>
-
-                    <View>
-                      <ScrollView
-                        horizontal={true}
-                        showsHorizontalScrollIndicator={false}>
-                        {addondata.map(i => {
-                          const cartItem = MyCartaddonItmes.find(
-                            cartItem => cartItem.id === i._id,
-                          );
-                          const isItemInCart = !!cartItem;
-
-                          return (
-                            <View
-                              key={i.addOnsId}
-                              style={{
-                                width: 180,
-                                borderColor: '#FFD700',
-                                borderRadius: 10,
-                                margin: 10,
-                              }}>
-                              <View>
-                                <Image
-                                  source={{
-                                    uri: `https://api.vijayhomesuperadmin.in/addOns/${i.addOnsImage}`,
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    height: 150,
-                                  }}
-                                />
-                                {isItemInCart ? (
-                                  <View
-                                    style={{
-                                      flexDirection: 'row',
-                                      justifyContent: 'center',
-                                      padding: 2,
-                                      width: '70%',
-                                      justifyContent: 'center',
-                                      alignContent: 'center',
-                                      alignSelf: 'center',
-                                      borderRadius: 5,
-                                      elevation: 15,
-                                      backgroundColor: 'darkred',
-                                      position: 'absolute',
-                                      bottom: 10,
-                                    }}>
-                                    <TouchableOpacity
-                                      style={{}}
-                                      onPress={() => {
-                                        if (cartItem.qty > 1) {
-                                          dispatch(
-                                            removeMyCartItemaddon(cartItem),
-                                          );
-                                        } else {
-                                          dispatch(
-                                            deleteMyCartItemaddon(cartItem.id),
-                                          );
-                                        }
-                                      }}>
-                                      <Text>
-                                        <AntDesign
-                                          name="minuscircleo"
-                                          size={15}
-                                          color="white"
-                                        />
-                                      </Text>
-                                    </TouchableOpacity>
-                                    <Text
-                                      style={{
-                                        marginLeft: 10,
-                                        color: 'white',
-                                      }}>
-                                      {cartItem.qty}
-                                    </Text>
-
-                                    <TouchableOpacity
-                                      style={{marginLeft: 10}}
-                                      onPress={() => handleaddon1(cartItem)}>
-                                      <Text>
-                                        <AntDesign
-                                          name="pluscircleo"
-                                          size={15}
-                                          color="white"
-                                        />
-                                      </Text>
-                                    </TouchableOpacity>
-                                  </View>
-                                ) : (
-                                  <TouchableOpacity
-                                    style={{
-                                      width: 80,
-                                      borderColor: 'grey',
-                                      borderRadius: 5,
-                                      position: 'absolute',
-                                      bottom: 10,
-                                      justifyContent: 'center',
-                                      alignSelf: 'center',
-                                      elevation: 15,
-                                      backgroundColor: 'darkred',
-                                    }}
-                                    onPress={() => handleaddon(i)}>
-                                    <Text
-                                      style={{
-                                        textAlign: 'center',
-                                        fontSize: 13,
-                                        padding: 1,
-                                        fontFamily: 'Poppins-Medium',
-                                        color: 'white',
-                                      }}>
-                                      Add
-                                    </Text>
-                                  </TouchableOpacity>
-                                )}
-                              </View>
-                              <View style={{padding: 5}}>
-                                <View>
-                                  <Text
-                                    style={styles.summarytext}
-                                    numberOfLines={2}>
-                                    {i.addOnsName}
-                                  </Text>
-                                </View>
-
-                                <View
-                                  style={{
-                                    flexDirection: 'row',
-                                  }}>
-                                  <Text
-                                    style={{
-                                      textDecorationLine: 'line-through',
-                                      fontSize: 14,
-                                      fontFamily: 'Poppins-Bold',
-                                      color: '#513b1c',
-                                    }}>
-                                    <FontAwesome name="rupee" size={12} />
-                                    {cartItem?.qty
-                                      ? cartItem?.qty * i.addOnsPrice
-                                      : i.addOnsPrice}
-                                  </Text>
-                                  <Text
-                                    style={{
-                                      marginLeft: 10,
-                                      fontFamily: 'Poppins-Medium',
-                                      color: '#e41b17',
-                                    }}>
-                                    <FontAwesome name="rupee" size={12} />
-                                    {cartItem?.qty
-                                      ? cartItem?.qty * i.addOnsOfferPrice
-                                      : i.addOnsOfferPrice}
-                                  </Text>
-                                </View>
-                              </View>
-                            </View>
-                          );
-                        })}
-                      </ScrollView>
-                    </View>
-                  </View>
-                ) : (
-                  <></>
-                )}
-
-                <View style={styles.container}>
-                  <View
-                    style={{margin: 15, marginTop: -10, flex: 1}}
-                    ref={scrollViewRef}>
-                    <Text
-                      style={{
-                        color: 'black',
-
-                        fontSize: 18,
-                        fontFamily: 'Poppins-Medium',
-                      }}>
-                      Select the Date
-                    </Text>
-                    <View style={{flexDirection: 'row', marginTop: 20}}>
-                      <TouchableOpacity
-                        style={[
-                          styles.box,
-                          isTabActive(today.format('YYYY-MM-DD')) && {
-                            backgroundColor: 'darkred',
-                          },
-                        ]}
-                        onPress={() => handleTabClick(today)}>
-                        <Text
-                          style={[
-                            styles.box3,
-                            isTabActive(today.format('YYYY-MM-DD')) && {
-                              color: 'white',
-                              fontFamily: 'Poppins-Medium',
-                            },
-                          ]}>
-                          {today.format('ddd, D')}
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.box,
-                          isTabActive(tomorrow.format('YYYY-MM-DD')) && {
-                            backgroundColor: 'darkred',
-                          },
-                        ]}
-                        onPress={() => handleTabClick(tomorrow)}>
-                        <Text
-                          style={[
-                            styles.box3,
-                            isTabActive(tomorrow.format('YYYY-MM-DD')) && {
-                              color: 'white',
-                              fontFamily: 'Poppins-Medium',
-                            },
-                          ]}>
-                          {tomorrow.format('ddd, D')}
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.box,
-                          isTabActive(nextTwoDays.format('YYYY-MM-DD')) && {
-                            backgroundColor: 'darkred',
-                          },
-                        ]}
-                        onPress={() => handleTabClick(nextTwoDays)}>
-                        <Text
-                          style={[
-                            styles.box3,
-                            isTabActive(nextTwoDays.format('YYYY-MM-DD')) && {
-                              color: 'white',
-                              fontFamily: 'Poppins-Medium',
-                            },
-                          ]}>
-                          {nextTwoDays.format('ddd, D')}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <View style={{margin: 15, flexDirection: 'row'}}>
-                    <TouchableOpacity
-                      style={[
-                        styles.box,
-                        isTabActive(nextthreeDays.format('YYYY-MM-DD')) && {
-                          backgroundColor: 'darkred',
-                        },
-                      ]}
-                      onPress={() => handleTabClick(nextthreeDays)}>
-                      <Text
-                        style={[
-                          styles.box3,
-                          isTabActive(nextthreeDays.format('YYYY-MM-DD')) && {
-                            color: 'white',
-                            fontFamily: 'Poppins-Medium',
-                          },
-                        ]}>
-                        {nextthreeDays.format('ddd, D')}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={{flex: 0.7, padding: 0}}
-                      onPress={openCalendar}>
-                      <View>
-                        {!date ? (
-                          <View style={styles.date}>
-                            <Feather
-                              name="calendar"
-                              size={20}
-                              color="black"
-                              style={{paddingRight: 10}}
-                            />
-                            <Text>Select a date</Text>
-                          </View>
-                        ) : (
-                          <View style={styles.date}>
-                            <Text
-                              style={{
-                                fontFamily: 'Poppins-Bold',
-                                color: 'black',
-                              }}>
-                              {selectedDate}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-
-                  <Modal
-                    animationType="slide"
-                    transparent={true}
-                    visible={isSlotModalVisible}
-                    onRequestClose={() => setSlotModalVisible(false)}>
-                    <View
-                      style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        backgroundColor: 'white',
-                        width: '100%',
-                        elevation: 15,
-                        borderRadius: 10,
-                        height: 'auto',
-                        maxHeight: '98%',
-                      }}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          margin: 10,
-                        }}>
-                        <Text style={styles.bd}>Select a Slot</Text>
-                        <TouchableOpacity
-                          onPress={() => setSlotModalVisible(false)}
-                          style={{
-                            borderWidth: 1,
-                            borderRadius: 50,
-                            borderColor: 'gray',
-                            padding: 5,
-                          }}>
-                          <Feather name="x" color="black" size={15} />
-                        </TouchableOpacity>
-                      </View>
-
-                      <View style={{marginHorizontal: 10}}>
-                        <View
-                          style={{
-                            height: 1,
-                            backgroundColor: 'lightgray',
-                            marginTop: 5,
-                          }}
-                        />
-                        {renderSlots()}
-                      </View>
-
-                      <View style={{margin: 10}}>
-                        <Text style={styles.bd}>Select Your Address</Text>
-                        <View
-                          style={{
-                            height: 1,
-                            backgroundColor: 'lightgray',
-                            marginTop: 15,
-                          }}
-                        />
-                      </View>
-
-                      <ScrollView
-                        style={{
-                          marginHorizontal: 15,
-                          marginBottom: 15,
-                          maxHeight: 250,
-                        }}>
-                        {customeraddress.map((i, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            style={{flexDirection: 'row', marginTop: 15}}
-                            onPress={() => {
-                              setChecked(i);
-                              handleSelectedAddress(i);
-                              bottomSheet.current.show();
-                              setSlotModalVisible(false);
-                            }}>
-                            <View style={{flex: 0.15}}>
-                              <RadioButton
-                                value={i}
-                                status={
-                                  checked === i ? 'checked' : 'unchecked'
-                                }
-                                onPress={() => {
-                                  setChecked(i);
-                                  handleSelectedAddress(i);
-                                  bottomSheet.current.show();
-                                  setSlotModalVisible(false);
-                                }}
-                              />
-                            </View>
-
-                            <View style={{flex: 0.85}}>
-                              <View style={{flexDirection: 'row'}}>
-                                <Text
-                                  style={{
-                                    color: 'black',
-                                    fontFamily: 'Poppins-Medium',
-                                    fontSize: 17,
-                                  }}>
-                                  {i.save_as === 'other'
-                                    ? i.other_data
-                                    : i.save_as}
-                                </Text>
-                              </View>
-                              <Text style={{fontSize: 13, color: 'black'}}>
-                                {i.platno}, {i.landmark}, {i.address}
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-
-                      <View
-                        style={{
-                          borderTopWidth: 1,
-                          borderTopColor: 'lightgray',
-                          padding: 15,
-                        }}>
-                        <TouchableOpacity
-                          onPress={mapModal}
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                          }}>
-                          <AntDesign
-                            name="plus"
-                            size={16}
-                            style={{color: 'darkred', marginRight: 10}}
-                          />
+              <ScrollView>
+                {MyCartItmes.map(item => (
+                  <View style={styles.card} key={item.id}>
+                    <View style={{flexDirection: 'row'}}>
+                      <View style={{flex: 0.7}}>
+                        <View style={{marginLeft: 5}}>
+                          <View></View>
                           <Text
                             style={{
-                              color: 'darkred',
+                              fontSize: 16,
                               fontFamily: 'Poppins-Bold',
-                              fontSize: 15,
+                              color: 'darkred',
                             }}>
-                            Add New Address
+                            {item.planName}
                           </Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={() => {
-                          console.log('Selected Slot:', selectedSlot);
-                          console.log('Selected Address:', checked);
-                          if (selectedSlot && checked) {
-                            setSlotModalVisible(false);
-                          } else {
-                            alert('Please select both a slot and an address');
-                          }
-                        }}
-                        style={{
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        }}>
-                        <Text
-                          style={{
-                            color: 'white',
-                            padding: 10,
-                            textAlign: 'center',
-                            backgroundColor: 'darkred',
-                            marginTop: 10,
-                            width: '90%',
-                            borderRadius: 7,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: 10,
-                          }}>
-                          Proceed
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </Modal>
-
-                  {user?.customerName || user?.email ? (
-                    <></>
-                  ) : (
-                    <View>
-                      <View style={{paddingLeft: 15}}>
-                        <Text
-                          style={{
-                            color: 'black',
-                            fontSize: 18,
-                            fontFamily: 'Poppins-Medium',
-                          }}>
-                          {' '}
-                          Customer details
-                        </Text>
-                      </View>
-
-                      <View style={{margin: 15}}>
-                        <TextInput
-                          placeholder="Customer Name"
-                          placeholderTextColor={'black'}
-                          style={styles.customerInput}
-                          underlineColorAndroid={
-                            Platform.OS === 'android' ? 'white' : null
-                          }
-                          value={customerName}
-                          onChangeText={handlecustomer}
-                        />
-                        <TextInput
-                          placeholder="Email "
-                          style={[styles.customerInput, {marginTop: 15}]}
-                          placeholderTextColor={'black'}
-                          value={email}
-                          underlineColorAndroid={
-                            Platform.OS === 'android' ? 'white' : null
-                          }
-                          onChangeText={handleemail}
-                        />
-                      </View>
-                    </View>
-                  )}
-                </View>
-
-                {voucherdata.length > 0 ? (
-                  <View
-                    style={{
-                      backgroundColor: 'white',
-                      marginTop: 10,
-                      margin: 15,
-                    }}>
-                    <Text
-                      style={{
-                        color: 'black',
-                        fontSize: 18,
-                        fontFamily: 'Poppins-Medium',
-                      }}>
-                      Coupons & Offers
-                    </Text>
-
-                    <View style={{flexDirection: 'row', marginTop: 10}}>
-                      <View style={{flex: 0.45}}>
-                        <TextInput
-                          style={{
-                            borderWidth: 1,
-                            borderRadius: 5,
-                            height: 45,
-                            paddingLeft: 15,
-                            color: 'black',
-                            fontSize: 14,
-                            borderColor: '#E0E0E0',
-                          }}
-                          onChangeText={text => setVoucherCode(text)}
-                          placeholder="Enter Voucher Code"
-                          placeholderTextColor={'grey'}
-                          underlineColorAndroid={
-                            Platform.OS === 'android' ? 'white' : null
-                          }
-                        />
-                        <Text style={{color: 'red'}}>{validationMessage}</Text>
-                      </View>
-                      <View style={{flex: 0.1}}></View>
-                      <View style={{flex: 0.45}}>
-                        <TouchableOpacity
-                          onPress={() => {
-                            const result = applyCouponCode();
-                            setDiscountedTotal(result);
-                          }}
-                          style={{
-                            backgroundColor: 'darkred',
-                            padding: 10,
-                            borderRadius: 5,
-                            height: 45,
-                            justifyContent: 'center',
-                          }}>
-                          <Text
-                            style={{
-                              color: 'white',
-                              fontSize: 14,
-                              textAlign: 'center',
-                            }}>
-                            Apply
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                ) : (
-                  ''
-                )}
-                <View style={{margin: 15}}>
-                  <View style={{flexDirection: 'row'}}>
-                    <Text style={{color: '#40A2D8'}}>*</Text>
-                    <Text
-                      style={{
-                        color: '#40A2D8',
-                        fontFamily: 'Poppins-Medium',
-                        textAlign: 'auto',
-                        flexShr: 1,
-                      }}>
-                      Book Over Rs 1500 to use wallet , upto 10% From your
-                      wallet Account !
-                    </Text>
-                  </View>
-                  <View style={{flexDirection: 'row', marginTop: 5}}>
-                    <Text style={{color: '#40A2D8'}}>*</Text>
-                    <Text
-                      style={{
-                        color: '#40A2D8',
-                        fontFamily: 'Poppins-Medium',
-                        textAlign: 'auto',
-                        flexShr: 1,
-                      }}>
-                      Book over Rs 1500, get 2% cashback in your wallet !
-                    </Text>
-                  </View>
-                </View>
-                <View
-                  style={{
-                    backgroundColor: 'white',
-                    marginTop: 20,
-                    paddingLeft: 15,
-                  }}>
-                  <Text
-                    style={{
-                      color: 'black',
-                      backgroundColor: 'rgb(214, 202, 140)',
-                      width: 190,
-                      borderTopRightRadius: 80,
-                      padding: 3,
-                      fontSize: 17,
-                      fontFamily: 'Poppins-Medium',
-                    }}>
-                    Payment summary
-                  </Text>
-
-                  <View style={{flexDirection: 'row', margin: 10}}>
-                    <View style={{flex: 0.8}}>
-                      <Text style={styles.summarytext}>Total Amount</Text>
-                    </View>
-                    <View style={{flex: 0.2, alignItems: 'flex-end'}}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          textDecorationLine: 'line-through',
-                        }}>
-                        <FontAwesome
-                          name="rupee"
-                          color="black"
-                          size={14}
-                          style={{marginTop: 3}}
-                        />
-                        <Text
-                          style={{
-                            textDecorationLine: 'line-through',
-                            color: 'black',
-                          }}>
-                          {Carttotal1 + totaladdon1}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={{flexDirection: 'row', margin: 10}}>
-                    <View style={{flex: 0.8}}>
-                      <Text style={styles.summarytext}>Discount</Text>
-                    </View>
-                    <View style={{flex: 0.2, alignItems: 'flex-end'}}>
-                      <View style={{flexDirection: 'row'}}>
-                        <Text style={styles.summarytext}>
-                          {couponDiscount !== Carttotal && appliedCoupon
-                            ? `${appliedCoupon.discountPercentage}%`
-                            : '0%'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={{flexDirection: 'row', margin: 10}}>
-                    <View style={{flex: 0.8}}>
-                      <Text style={styles.summarytext}>Taxes and Fee</Text>
-                    </View>
-                    <View style={{flex: 0.2, alignItems: 'flex-end'}}>
-                      <View style={{flexDirection: 'row'}}>
-                        <Text style={styles.summarytext}>{finalGST}</Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={{flexDirection: 'row', margin: 10}}>
-                    <View style={{flex: 0.8}}>
-                      <Text style={styles.summarytext}>Saved</Text>
-                    </View>
-                    <View style={{flex: 0.2, alignItems: 'flex-end'}}>
-                      <View style={{flexDirection: 'row'}}>
-                        <FontAwesome
-                          name="rupee"
-                          color="rgb(30,135,226)"
-                          size={14}
-                          style={{marginTop: 3}}
-                        />
-                        <Text style={{color: 'rgb(30,135,226)'}}>
-                          {CartSavedtotal + FreqensaveAmt1}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  {voucherCode ? (
-                    <View style={{flexDirection: 'row', margin: 10}}>
-                      <View style={{flex: 0.5}}>
-                        <Text style={styles.summarytext}>Coupon Code</Text>
-                      </View>
-                      <View style={{flex: 0.5, alignItems: 'flex-end'}}>
-                        <View style={{flexDirection: 'row'}}>
-                          <Text style={{fontSize: 12, color: 'green'}}>
-                            {voucherCode ? voucherCode : ''}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  ) : (
-                    <></>
-                  )}
-
-                  {discountAmount && couponDiscount + total1 >= 1500 ? (
-                    <View style={{flexDirection: 'row', margin: 5}}>
-                      <View style={{flex: 0.5, flexDirection: 'row'}}>
-                        <Checkbox
-                          status={isSelected ? 'checked' : 'unchecked'}
-                          onPress={handlePress}
-                        />
-
-                        <Text
-                          style={{
-                            marginTop: 10,
-                            fontFamily: 'Poppins-Medium',
-                            color: 'black',
-                          }}>
-                          Use wallet balance{' '}
-                        </Text>
-                      </View>
-                      <View style={{flex: 0.5, alignItems: 'flex-end'}}>
-                        <View style={{flexDirection: 'row'}}>
-                          <Text
-                            style={{
-                              fontSize: 15,
-                              color: 'green',
-                              marginRight: 5,
-                            }}>
-                            {discountAmount ? discountAmount.toFixed(2) : ''}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  ) : (
-                    <></>
-                  )}
-
-                  <Text
-                    style={{
-                      borderBottomWidth: 1,
-                      borderColor: 'lightgray',
-                    }}></Text>
-
-                  <View style={{flexDirection: 'row', margin: 10}}>
-                    <View style={{flex: 0.8}}>
-                      <Text
-                        style={{
-                          fontSize: 18,
-                          color: 'black',
-                          fontFamily: 'Poppins-Medium',
-                        }}>
-                        Grand Total
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          color: 'grey',
-                        }}>
-                        (including GST & Other Charges)
-                      </Text>
-                    </View>
-                    <View style={{flex: 0.25, alignItems: 'flex-end'}}>
-                      <View style={{flexDirection: 'row'}}>
-                        <FontAwesome
-                          name="rupee"
-                          color="black"
-                          size={18}
-                          style={{marginTop: 3, marginRight: 2}}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 18,
-                            color: 'black',
-                            fontFamily: 'Poppins-Medium',
-                          }}>
-                          {finalGrandTotal}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: 'white',
-                      borderRadius: 5,
-                      padding: 10,
-                      margin: 2,
-                    }}
-                    onPress={() => setcancelationModel(true)}>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        color: 'darkred',
-                        fontFamily: 'Poppins-Bold',
-                      }}>
-                      Cancellation Policy
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-
-              <Modal isVisible={ModalVisible1}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    backgroundColor: 'white',
-                    padding: 15,
-                  }}>
-                  <ActivityIndicator size="large" />
-                  <Text style={{color: 'black', fontSize: 23, marginLeft: 10}}>
-                    Please wait.....
-                  </Text>
-                </View>
-              </Modal>
-
-              <Modal isVisible={calenderModel}>
-                <View
-                  style={{
-                    padding: 15,
-                  }}>
-                  <TouchableOpacity
-                    onPress={() => setcalenderModel(false)}
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      backgroundColor: 'white',
-                      zIndex: 1,
-                      borderRadius: 50,
-                    }}>
-                    <AntDesign name="closecircle" color="" size={35} />
-                  </TouchableOpacity>
-                  <Calendar
-                    minDate={today.toISOString().split('T')[0]}
-                    onDayPress={handleDayPress}
-                    current={
-                      selectedDate || new Date().toISOString().split('T')[0]
-                    }
-                    markedDates={{
-                      [selectedDate]: {
-                        selected: true,
-                        disableTouchEvent: true,
-                        selectedDotColor: 'orange',
-                      },
-                    }}
-                  />
-                </View>
-              </Modal>
-
-              <Modal isVisible={cancelationModel}>
-                <View style={styles.content}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setcancelationModel(false);
-                    }}
-                    style={{
-                      alignSelf: 'flex-end',
-                      backgroundColor: '',
-                      borderWidth: 1,
-                      borderRadius: 50,
-                      borderColor: 'gray',
-                      marginBottom: 20,
-                    }}>
-                    <Feather name="x" color="grey" size={25} />
-                  </TouchableOpacity>
-                  <Text style={styles.title}>
-                    Vijay Home Services Cancellation Policy
-                  </Text>
-                  <Text style={styles.subtitle}>
-                    At Vijay Home Services, we understand that plans can change.
-                    Our cancellation policy is designed to be fair and
-                    transparent for all our customers.
-                  </Text>
-                  <Text style={styles.sectionTitle}>
-                    No Cancellation Charges !!
-                  </Text>
-                  <Text style={styles.sectionText}>
-                    Before 4 Hours: If you cancel your service more than 4 hours
-                    before the scheduled slot, there will be no cancellation
-                    charges.
-                  </Text>
-                  <Text style={styles.sectionTitle}>
-                    Cancellation Charges !!
-                  </Text>
-                  <Text style={styles.sectionText}>
-                    Within 4 Hours to 1 Hour Before Scheduled Slot:
-                    {'\n'}- Full House Cleaning: ₹500
-                    {'\n'}- Sofa/Kitchen/Bathroom/Mini-Services Cleaning: ₹100
-                    {'\n'}- Home Repair Services: ₹200
-                    {'\n'}- Appliances Services: ₹200
-                  </Text>
-                  <Text style={styles.sectionText}>
-                    Within 1 Hour and After Scheduled Slot:
-                    {'\n'}- Full House Cleaning: ₹700
-                    {'\n'}- Sofa/Kitchen/Bathroom/Mini-Services Cleaning: ₹150
-                  </Text>
-                  <Text style={styles.sectionText}>
-                    We appreciate your understanding and cooperation. Please
-                    contact us as soon as possible if you need to cancel or
-                    reschedule your service to avoid any charges.
-                  </Text>
-                  <TouchableOpacity>
-                    <Text></Text>
-                  </TouchableOpacity>
-                </View>
-              </Modal>
-
-              {selectedDate && selectedSlotText ? (
-                <View onPress={() => setModalVisible(true)}></View>
-              ) : (
-                ''
-              )}
-
-              {selectedDate && selectedSlotText ? (
-                <TouchableOpacity
-                  onPress={() => {
-                    if (!Fulladd.address) {
-                      alert('Please select the address');
-                    } else {
-                      bottomSheet.current.show();
-                    }
-                  }}
-                  style={{
-                    flexDirection: 'row',
-                    backgroundColor: 'green',
-
-                    padding: 10,
-                    borderRadius: 5,
-                    width: '90%',
-                    justifyContent: 'center',
-                    alignSelf: 'center',
-                    alignContent: 'center',
-                    marginBottom: 10,
-                  }}>
-                  <View>
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontSize: 16,
-                        fontFamily: 'Poppins-Medium',
-                      }}>
-                      Book Now
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ) : (
-                <Pressable
-                  style={{
-                    flexDirection: 'row',
-                    backgroundColor: '#8b00005e',
-                    padding: 10,
-                    borderRadius: 5,
-                    width: '90%',
-                    justifyContent: 'center',
-                    alignSelf: 'center',
-                    alignContent: 'center',
-                    marginBottom: 10,
-                  }}>
-                  <View>
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontSize: 16,
-                        fontFamily: 'Poppins-Medium',
-                      }}>
-                      Book Now
-                    </Text>
-                  </View>
-                </Pressable>
-              )}
-
-              {/* =========== START: MODIFIED BottomSheet FOR STICKY BUTTON =========== */}
-              <View>
-                <BottomSheet
-                  hasDraggableIcon
-                  ref={bottomSheet}
-                  height={700} // CHANGED: Increased height for better visibility
-                  style={{backgroundColor: 'white'}}>
-                  {/* NEW: Parent container to manage layout */}
-                  <View style={{flex: 1}}>
-                    {/* NEW: Scrollable area for content */}
-                    <ScrollView contentContainerStyle={{paddingBottom: 20}}>
-                      <View
-                        style={{
-                          backgroundColor: 'white',
-                          marginTop: 20,
-                          paddingLeft: 15,
-                        }}>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            marginBottom: 10,
-                            marginTop: 10,
-                            paddingRight: 15,
-                          }}>
-                          <Text style={{fontSize: 14, color: 'black'}}>
-                            Selected Date:{' '}
-                            <Text style={{fontFamily: 'Poppins-Bold'}}>
-                              {selectedDate}
-                            </Text>
-                          </Text>
-                          <TouchableOpacity
-                            onPress={() => bottomSheet.current.close()}>
-                            <Feather
-                              name="edit"
-                              color="grey"
-                              size={16}
-                              marginRight={5}
-                            />
-                          </TouchableOpacity>
-                        </View>
-
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            marginBottom: 10,
-                            paddingRight: 15,
-                          }}>
-                          <Text style={{fontSize: 14, color: 'black'}}>
-                            Selected Slot:{' '}
-                            <Text style={{fontFamily: 'Poppins-Bold'}}>
-                              {selectedSlot || 'None'}
-                            </Text>
-                          </Text>
-                          <TouchableOpacity
-                            onPress={() => setSlotModalVisible(true)}>
-                            <Feather
-                              name="edit"
-                              color="grey"
-                              size={16}
-                              marginRight={5}
-                            />
-                          </TouchableOpacity>
-                        </View>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            marginBottom: 20,
-                            paddingRight: 15,
-                          }}>
                           <Text
                             style={{
                               fontSize: 14,
+                              fontFamily: 'Poppins-Bold',
                               color: 'black',
-                              flex: 1,
-                              flexWrap: 'wrap',
                             }}>
-                            Selected Address:{' '}
-                            <Text style={{fontFamily: 'Poppins-Bold'}}>
-                              {(() => {
-                                if (!Fulladd) return 'None';
-
-                                const platnoPart =
-                                  Fulladd.platno &&
-                                  String(Fulladd.platno).trim() !== ''
-                                    ? String(Fulladd.platno).trim()
-                                    : '';
-                                const landmarkPart =
-                                  Fulladd.landmark &&
-                                  String(Fulladd.landmark).trim() !== ''
-                                    ? String(Fulladd.landmark).trim()
-                                    : '';
-                                const addressPart =
-                                  Fulladd.address &&
-                                  String(Fulladd.address).trim() !== ''
-                                    ? String(Fulladd.address).trim()
-                                    : '';
-
-                                const combined = [
-                                  platnoPart,
-                                  landmarkPart,
-                                  addressPart,
-                                ]
-                                  .filter(part => part !== '')
-                                  .join(', ');
-
-                                return combined || 'None';
-                              })()}
-                            </Text>
+                            {item.service?.serviceName}
                           </Text>
-                          <TouchableOpacity
-                            onPress={() => setSlotModalVisible(true)}>
-                            <Feather
-                              name="edit"
-                              color="grey"
-                              size={16}
-                              marginRight={5}
-                            />
-                          </TouchableOpacity>
-                        </View>
 
-                        {voucherdata.length > 0 ? (
-                          <View
-                            style={{
-                              paddingRight: 15,
-                              marginBottom: 20,
-                            }}>
+                          <View style={{flexDirection: 'row'}}>
                             <Text
                               style={{
-                                color: 'black',
-                                fontSize: 18,
-                                fontFamily: 'Poppins-Medium',
+                                marginLeft: 10,
+                                color: 'grey',
+                                textDecorationLine: 'line-through',
                               }}>
-                              Coupons & Offers
+                              <FontAwesome name="rupee" size={14} />
+                              {item.planPrice}
                             </Text>
-
-                            <View style={{flexDirection: 'row', marginTop: 10}}>
-                              <View style={{flex: 0.45}}>
-                                <TextInput
-                                  style={{
-                                    borderWidth: 1,
-                                    borderRadius: 5,
-                                    height: 45,
-                                    paddingLeft: 15,
-                                    color: 'black',
-                                    fontSize: 14,
-                                    borderColor: '#E0E0E0',
-                                  }}
-                                  onChangeText={text => setVoucherCode(text)}
-                                  placeholder="Enter Voucher Code"
-                                  placeholderTextColor={'grey'}
-                                  underlineColorAndroid={
-                                    Platform.OS === 'android' ? 'white' : null
-                                  }
-                                />
-                                <Text style={{color: 'red'}}>
-                                  {validationMessage}
-                                </Text>
-                              </View>
-                              <View style={{flex: 0.1}}></View>
-                              <View style={{flex: 0.45}}>
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    const result = applyCouponCode();
-                                    setDiscountedTotal(result);
-                                  }}
-                                  style={{
-                                    backgroundColor: 'darkred',
-                                    padding: 10,
-                                    borderRadius: 5,
-                                    height: 45,
-                                    justifyContent: 'center',
-                                  }}>
-                                  <Text
-                                    style={{
-                                      color: 'white',
-                                      fontSize: 14,
-                                      textAlign: 'center',
-                                    }}>
-                                    Apply
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-                            </View>
+                            <Text style={{marginLeft: 10, color: 'grey'}}>
+                              <FontAwesome name="rupee" size={14} />{' '}
+                              {item.offerprice}
+                            </Text>
                           </View>
-                        ) : null}
-
-                        <Text
+                        </View>
+                      </View>
+                      <View style={{flex: 0.3}}>
+                        <View
                           style={{
-                            color: 'black',
-                            backgroundColor: 'rgb(214, 202, 140)',
-                            width: 190,
-                            borderTopRightRadius: 80,
-                            padding: 3,
-                            fontSize: 17,
-                            fontFamily: 'Poppins-Medium',
+                            flexDirection: 'row',
+                            justifyContent: 'center',
                           }}>
-                          Payment summary
-                        </Text>
+                          <FontAwesome
+                            name="rupee"
+                            size={14}
+                            color="black"
+                            style={{marginTop: 4}}
+                          />
+
+                          <Text
+                            style={{
+                              textAlign: 'center',
+                              marginLeft: 2,
+                              color: 'black',
+                              fontSize: 15,
+                              fontFamily: 'Poppins-Medium',
+                            }}>
+                            {item.qty * item.offerprice}
+                          </Text>
+                        </View>
 
                         <View
                           style={{
-                            paddingRight: 15,
+                            flexDirection: 'row',
+                            marginTop: 10,
+                            backgroundColor: 'green',
+                            elevation: 15,
+                            padding: 5,
+                            justifyContent: 'center',
+                            width: 100,
                           }}>
-                          <View style={{flexDirection: 'row', margin: 10}}>
-                            <View style={{flex: 0.8}}>
-                              <Text style={styles.summarytext}>
-                                Total Amount
-                              </Text>
-                            </View>
-                            <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                          <TouchableOpacity
+                            style={{}}
+                            onPress={() => {
+                              if (item.qty > 1) {
+                                dispatch(removeMyCartItem(item));
+                              } else {
+                                dispatch(deleteMyCartItem(item.id));
+                              }
+                            }}>
+                            <Text>
+                              <AntDesign
+                                name="minuscircleo"
+                                size={18}
+                                color="white"
+                              />{' '}
+                            </Text>
+                          </TouchableOpacity>
+                          <Text style={{color: 'white', marginLeft: 5}}>
+                            {item.qty}
+                          </Text>
+
+                          <TouchableOpacity
+                            style={{marginLeft: 10}}
+                            onPress={() => handle(item)}>
+                            <Text>
+                              <AntDesign
+                                name="pluscircleo"
+                                size={18}
+                                color="white"
+                              />
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {addondata.length > 0 ? (
+              <View style={{backgroundColor: 'white', margin: 10}}>
+                <Text
+                  style={{
+                    color: 'black',
+                    fontSize: 18,
+                    fontFamily: 'Poppins-Medium',
+                  }}>
+                  Frequently Added Together
+                </Text>
+
+                <View>
+                  <ScrollView
+                    horizontal={true}
+                    showsHorizontalScrollIndicator={false}>
+                    {addondata.map(i => {
+                      const cartItem = MyCartaddonItmes.find(
+                        cartItem => cartItem.id === i._id,
+                      );
+                      const isItemInCart = !!cartItem;
+
+                      return (
+                        <View
+                          key={i.addOnsId}
+                          style={{
+                            width: 180,
+                            borderColor: '#FFD700',
+                            borderRadius: 10,
+                            margin: 10,
+                          }}>
+                          <View>
+                            <Image
+                              source={{
+                                uri: `https://api.vijayhomesuperadmin.in/addOns/${i.addOnsImage}`,
+                              }}
+                              style={{
+                                width: '100%',
+                                height: 150,
+                              }}
+                            />
+                            {isItemInCart ? (
                               <View
                                 style={{
                                   flexDirection: 'row',
-                                  textDecorationLine: 'line-through',
+                                  justifyContent: 'center',
+                                  padding: 2,
+                                  width: '70%',
+                                  justifyContent: 'center',
+                                  alignContent: 'center',
+                                  alignSelf: 'center',
+                                  borderRadius: 5,
+                                  elevation: 15,
+                                  backgroundColor: 'darkred',
+                                  position: 'absolute',
+                                  bottom: 10,
                                 }}>
-                                <FontAwesome
-                                  name="rupee"
-                                  color="black"
-                                  size={14}
-                                  style={{marginTop: 3}}
-                                />
-                                <Text
-                                  style={{
-                                    textDecorationLine: 'line-through',
-                                    color: 'black',
+                                <TouchableOpacity
+                                  style={{}}
+                                  onPress={() => {
+                                    if (cartItem.qty > 1) {
+                                      dispatch(removeMyCartItemaddon(cartItem));
+                                    } else {
+                                      dispatch(
+                                        deleteMyCartItemaddon(cartItem.id),
+                                      );
+                                    }
                                   }}>
-                                  {Carttotal1 + totaladdon1}
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-
-                          <View style={{flexDirection: 'row', margin: 10}}>
-                            <View style={{flex: 0.8}}>
-                              <Text style={styles.summarytext}>Discount</Text>
-                            </View>
-                            <View style={{flex: 0.2, alignItems: 'flex-end'}}>
-                              <View style={{flexDirection: 'row'}}>
-                                <Text style={styles.summarytext}>
-                                  {couponDiscount !== Carttotal &&
-                                  appliedCoupon
-                                    ? `${appliedCoupon.discountPercentage}%`
-                                    : '0%'}
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-
-                          <View style={{flexDirection: 'row', margin: 10}}>
-                            <View style={{flex: 0.8}}>
-                              <Text style={styles.summarytext}>
-                                Taxes and Fee
-                              </Text>
-                            </View>
-                            <View style={{flex: 0.2, alignItems: 'flex-end'}}>
-                              <View style={{flexDirection: 'row'}}>
-                                <Text style={styles.summarytext}>
-                                  {finalGST}
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-
-                          <View style={{flexDirection: 'row', margin: 10}}>
-                            <View style={{flex: 0.8}}>
-                              <Text style={styles.summarytext}>Saved</Text>
-                            </View>
-                            <View style={{flex: 0.2, alignItems: 'flex-end'}}>
-                              <View style={{flexDirection: 'row'}}>
-                                <FontAwesome
-                                  name="rupee"
-                                  color="rgb(30,135,226)"
-                                  size={14}
-                                  style={{marginTop: 3}}
-                                />
-                                <Text style={{color: 'rgb(30,135,226)'}}>
-                                  {CartSavedtotal + FreqensaveAmt1}
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-
-                          {voucherCode ? (
-                            <View style={{flexDirection: 'row', margin: 10}}>
-                              <View style={{flex: 0.5}}>
-                                <Text style={styles.summarytext}>
-                                  Coupon Code
-                                </Text>
-                              </View>
-                              <View
-                                style={{flex: 0.5, alignItems: 'flex-end'}}>
-                                <View style={{flexDirection: 'row'}}>
-                                  <Text style={{fontSize: 12, color: 'green'}}>
-                                    {voucherCode ? voucherCode : ''}
+                                  <Text>
+                                    <AntDesign
+                                      name="minuscircleo"
+                                      size={15}
+                                      color="white"
+                                    />
                                   </Text>
-                                </View>
-                              </View>
-                            </View>
-                          ) : null}
-
-                          {discountAmount && couponDiscount + total1 >= 1500 ? (
-                            <View style={{flexDirection: 'row', margin: 5}}>
-                              <View style={{flex: 0.5, flexDirection: 'row'}}>
-                                <Checkbox
-                                  status={isSelected ? 'checked' : 'unchecked'}
-                                  onPress={handlePress}
-                                />
+                                </TouchableOpacity>
                                 <Text
                                   style={{
-                                    marginTop: 10,
+                                    marginLeft: 10,
+                                    color: 'white',
+                                  }}>
+                                  {cartItem.qty}
+                                </Text>
+
+                                <TouchableOpacity
+                                  style={{marginLeft: 10}}
+                                  onPress={() => handleaddon1(cartItem)}>
+                                  <Text>
+                                    <AntDesign
+                                      name="pluscircleo"
+                                      size={15}
+                                      color="white"
+                                    />
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            ) : (
+                              <TouchableOpacity
+                                style={{
+                                  width: 80,
+                                  borderColor: 'grey',
+                                  borderRadius: 5,
+                                  position: 'absolute',
+                                  bottom: 10,
+                                  justifyContent: 'center',
+                                  alignSelf: 'center',
+                                  elevation: 15,
+                                  backgroundColor: 'darkred',
+                                }}
+                                onPress={() => handleaddon(i)}>
+                                <Text
+                                  style={{
+                                    textAlign: 'center',
+                                    fontSize: 13,
+                                    padding: 1,
                                     fontFamily: 'Poppins-Medium',
-                                    color: 'black',
+                                    color: 'white',
                                   }}>
-                                  Use wallet balance
+                                  Add
                                 </Text>
-                              </View>
-                              <View
-                                style={{flex: 0.5, alignItems: 'flex-end'}}>
-                                <Text
-                                  style={{
-                                    fontSize: 15,
-                                    color: 'green',
-                                    marginRight: 5,
-                                  }}>
-                                  {discountAmount
-                                    ? discountAmount.toFixed(2)
-                                    : ''}
-                                </Text>
-                              </View>
-                            </View>
-                          ) : null}
-
-                          <Text
-                            style={{
-                              borderBottomWidth: 1,
-                              borderColor: 'lightgray',
-                            }}></Text>
-
-                          <View style={{flexDirection: 'row', margin: 10}}>
-                            <View style={{flex: 0.8}}>
-                              <Text
-                                style={{
-                                  fontSize: 18,
-                                  color: 'black',
-                                  fontFamily: 'Poppins-Medium',
-                                }}>
-                                Grand Total
-                              </Text>
-                              <Text
-                                style={{
-                                  fontSize: 12,
-                                  color: 'grey',
-                                }}>
-                                (inc. Taxes & Other Charges)
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                          <View style={{padding: 5}}>
+                            <View>
+                              <Text style={styles.summarytext} numberOfLines={2}>
+                                {i.addOnsName}
                               </Text>
                             </View>
 
                             <View
                               style={{
-                                flex: 0.25,
-                                alignItems: 'flex-end',
                                 flexDirection: 'row',
-                                alignItems: 'center',
                               }}>
-                              <FontAwesome
-                                name="rupee"
-                                color="black"
-                                size={16}
-                                style={{marginRight: 2}}
-                              />
-
                               <Text
                                 style={{
-                                  fontSize: 19,
-                                  color: 'black',
-                                  fontFamily: 'Poppins-Medium',
-                                  fontWeight: 'bold',
+                                  textDecorationLine: 'line-through',
+                                  fontSize: 14,
+                                  fontFamily: 'Poppins-Bold',
+                                  color: '#513b1c',
                                 }}>
-                                {finalGrandTotal}
+                                <FontAwesome name="rupee" size={12} />
+                                {cartItem?.qty
+                                  ? cartItem?.qty * i.addOnsPrice
+                                  : i.addOnsPrice}
+                              </Text>
+                              <Text
+                                style={{
+                                  marginLeft: 10,
+                                  fontFamily: 'Poppins-Medium',
+                                  color: '#e41b17',
+                                }}>
+                                <FontAwesome name="rupee" size={12} />
+                                {cartItem?.qty
+                                  ? cartItem?.qty * i.addOnsOfferPrice
+                                  : i.addOnsOfferPrice}
                               </Text>
                             </View>
                           </View>
-                          <View>
-                            <TouchableOpacity
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+            ) : (
+              <></>
+            )}
+            <View style={styles.container}>
+              {user?.customerName || user?.email ? (
+                <></>
+              ) : (
+                <View>
+                  <View style={{paddingLeft: 15}}>
+                    <Text
+                      style={{
+                        color: 'black',
+                        fontSize: 18,
+                        fontFamily: 'Poppins-Medium',
+                      }}>
+                      {' '}
+                      Customer details
+                    </Text>
+                  </View>
+
+                  <View style={{margin: 15}}>
+                    <TextInput
+                      placeholder="Customer Name"
+                      placeholderTextColor={'black'}
+                      style={styles.customerInput}
+                      underlineColorAndroid={
+                        Platform.OS === 'android' ? 'white' : null
+                      }
+                      value={customerName}
+                      onChangeText={handlecustomer}
+                    />
+                    <TextInput
+                      placeholder="Email "
+                      style={[styles.customerInput, {marginTop: 15}]}
+                      placeholderTextColor={'black'}
+                      value={email}
+                      underlineColorAndroid={
+                        Platform.OS === 'android' ? 'white' : null
+                      }
+                      onChangeText={handleemail}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+            {voucherdata.length > 0 ? (
+              <View
+                style={{
+                  backgroundColor: 'white',
+                  marginTop: 10,
+                  margin: 15,
+                }}>
+                <Text
+                  style={{
+                    color: 'black',
+                    fontSize: 18,
+                    fontFamily: 'Poppins-Medium',
+                  }}>
+                  Coupons & Offers
+                </Text>
+
+                <View style={{flexDirection: 'row', marginTop: 10}}>
+                  <View style={{flex: 0.45}}>
+                    <TextInput
+                      style={{
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        height: 45,
+                        paddingLeft: 15,
+                        color: 'black',
+                        fontSize: 14,
+                        borderColor: '#E0E0E0',
+                      }}
+                      onChangeText={text => setVoucherCode(text)}
+                      placeholder="Enter Voucher Code"
+                      placeholderTextColor={'grey'}
+                      underlineColorAndroid={
+                        Platform.OS === 'android' ? 'white' : null
+                      }
+                    />
+                    <Text style={{color: 'red'}}>{validationMessage}</Text>
+                  </View>
+                  <View style={{flex: 0.1}}></View>
+                  <View style={{flex: 0.45}}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        const result = applyCouponCode();
+                        setDiscountedTotal(result);
+                      }}
+                      style={{
+                        backgroundColor: 'darkred',
+                        padding: 10,
+                        borderRadius: 5,
+                        height: 45,
+                        justifyContent: 'center',
+                      }}>
+                      <Text
+                        style={{
+                          color: 'white',
+                          fontSize: 14,
+                          textAlign: 'center',
+                        }}>
+                        Apply
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              ''
+            )}
+            <View style={{margin: 15}}>
+              <View style={{flexDirection: 'row'}}>
+                <Text style={{color: '#40A2D8'}}>*</Text>
+                <Text
+                  style={{
+                    color: '#40A2D8',
+                    fontFamily: 'Poppins-Medium',
+                    textAlign: 'auto',
+                    flexShr: 1,
+                  }}>
+                  Book Over Rs 1500 to use wallet , upto 10% From your wallet
+                  Account !
+                </Text>
+              </View>
+              <View style={{flexDirection: 'row', marginTop: 5}}>
+                <Text style={{color: '#40A2D8'}}>*</Text>
+                <Text
+                  style={{
+                    color: '#40A2D8',
+                    fontFamily: 'Poppins-Medium',
+                    textAlign: 'auto',
+                    flexShr: 1,
+                  }}>
+                  Book over Rs 1500, get 2% cashback in your wallet !
+                </Text>
+              </View>
+            </View>
+            <View
+              style={{
+                backgroundColor: 'white',
+                marginTop: 20,
+                paddingLeft: 15,
+                paddingBottom: 20,
+              }}>
+              <Text
+                style={{
+                  color: 'black',
+                  backgroundColor: 'rgb(214, 202, 140)',
+                  width: 190,
+                  borderTopRightRadius: 80,
+                  padding: 3,
+                  fontSize: 17,
+                  fontFamily: 'Poppins-Medium',
+                }}>
+                Payment summary
+              </Text>
+
+              <View style={{flexDirection: 'row', margin: 10}}>
+                <View style={{flex: 0.8}}>
+                  <Text style={styles.summarytext}>Total Amount</Text>
+                </View>
+                <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      textDecorationLine: 'line-through',
+                    }}>
+                    <FontAwesome
+                      name="rupee"
+                      color="black"
+                      size={14}
+                      style={{marginTop: 3}}
+                    />
+                    <Text
+                      style={{
+                        textDecorationLine: 'line-through',
+                        color: 'black',
+                      }}>
+                      {Carttotal1 + totaladdon1}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{flexDirection: 'row', margin: 10}}>
+                <View style={{flex: 0.8}}>
+                  <Text style={styles.summarytext}>Discount</Text>
+                </View>
+                <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                  <View style={{flexDirection: 'row'}}>
+                    <Text style={styles.summarytext}>
+                      {couponDiscount !== Carttotal && appliedCoupon
+                        ? `${appliedCoupon.discountPercentage}%`
+                        : '0%'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{flexDirection: 'row', margin: 10}}>
+                <View style={{flex: 0.8}}>
+                  <Text style={styles.summarytext}>Taxes and Fee</Text>
+                </View>
+                <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                  <View style={{flexDirection: 'row'}}>
+                    <Text style={styles.summarytext}>{finalGST}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{flexDirection: 'row', margin: 10}}>
+                <View style={{flex: 0.8}}>
+                  <Text style={styles.summarytext}>Saved</Text>
+                </View>
+                <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                  <View style={{flexDirection: 'row'}}>
+                    <FontAwesome
+                      name="rupee"
+                      color="rgb(30,135,226)"
+                      size={14}
+                      style={{marginTop: 3}}
+                    />
+                    <Text style={{color: 'rgb(30,135,226)'}}>
+                      {CartSavedtotal + FreqensaveAmt1}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              {voucherCode ? (
+                <View style={{flexDirection: 'row', margin: 10}}>
+                  <View style={{flex: 0.5}}>
+                    <Text style={styles.summarytext}>Coupon Code</Text>
+                  </View>
+                  <View style={{flex: 0.5, alignItems: 'flex-end'}}>
+                    <View style={{flexDirection: 'row'}}>
+                      <Text style={{fontSize: 12, color: 'green'}}>
+                        {voucherCode ? voucherCode : ''}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <></>
+              )}
+
+              {discountAmount && couponDiscount + total1 >= 1500 ? (
+                <View style={{flexDirection: 'row', margin: 5}}>
+                  <View style={{flex: 0.5, flexDirection: 'row'}}>
+                    <Checkbox
+                      status={isSelected ? 'checked' : 'unchecked'}
+                      onPress={handlePress}
+                    />
+
+                    <Text
+                      style={{
+                        marginTop: 10,
+                        fontFamily: 'Poppins-Medium',
+                        color: 'black',
+                      }}>
+                      Use wallet balance{' '}
+                    </Text>
+                  </View>
+                  <View style={{flex: 0.5, alignItems: 'flex-end'}}>
+                    <View style={{flexDirection: 'row'}}>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          color: 'green',
+                          marginRight: 5,
+                        }}>
+                        {discountAmount ? discountAmount.toFixed(2) : ''}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <></>
+              )}
+
+              <Text
+                style={{
+                  borderBottomWidth: 1,
+                  borderColor: 'lightgray',
+                }}></Text>
+
+              <View style={{flexDirection: 'row', margin: 10}}>
+                <View style={{flex: 0.8}}>
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      color: 'black',
+                      fontFamily: 'Poppins-Medium',
+                    }}>
+                    Grand Total
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: 'grey',
+                    }}>
+                    (including GST & Other Charges)
+                  </Text>
+                </View>
+                <View style={{flex: 0.25, alignItems: 'flex-end'}}>
+                  <View style={{flexDirection: 'row'}}>
+                    <FontAwesome
+                      name="rupee"
+                      color="black"
+                      size={18}
+                      style={{marginTop: 3, marginRight: 2}}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        color: 'black',
+                        fontFamily: 'Poppins-Medium',
+                      }}>
+                      {finalGrandTotal}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: 'white',
+                  borderRadius: 5,
+                  padding: 10,
+                  margin: 2,
+                }}
+                onPress={() => setcancelationModel(true)}>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: 'darkred',
+                    fontFamily: 'Poppins-Bold',
+                  }}>
+                  Cancellation Policy
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+
+          {/* =========== START: MODIFICATION - Persistent Bottom Button =========== */}
+          <View style={styles.bottomButtonContainer}>
+            <TouchableOpacity
+              style={styles.bottomButton}
+              onPress={() => setDateTimeModalVisible(true)}>
+              <Text style={styles.bottomButtonText}>Select Slot & Date</Text>
+            </TouchableOpacity>
+          </View>
+          {/* =========== END: MODIFICATION =========== */}
+
+          {/* =========== START: MODIFICATION - New Date & Time Modal =========== */}
+          <Modal
+            isVisible={isDateTimeModalVisible}
+            style={styles.bottomModal}
+            onBackdropPress={() => setDateTimeModalVisible(false)}>
+            <View style={styles.modalViewContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Date & Time</Text>
+                <TouchableOpacity
+                  onPress={() => setDateTimeModalVisible(false)}>
+                  <AntDesign name="close" size={24} color="#555" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{paddingHorizontal: 10}}>
+                <Text style={styles.modalSectionTitle}>Select Date</Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginTop: 10,
+                  }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.dateButton,
+                      isTabActive(today.format('YYYY-MM-DD')) &&
+                        styles.selectedDateButton,
+                    ]}
+                    onPress={() => handleTabClick(today)}>
+                    <Text
+                      style={[
+                        styles.dateButtonText,
+                        isTabActive(today.format('YYYY-MM-DD')) &&
+                          styles.selectedDateButtonText,
+                      ]}>
+                      {today.format('DD')}{' '}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.dateButtonSubText,
+                        isTabActive(today.format('YYYY-MM-DD')) &&
+                          styles.selectedDateButtonText,
+                      ]}>
+                      Today
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.dateButton,
+                      isTabActive(tomorrow.format('YYYY-MM-DD')) &&
+                        styles.selectedDateButton,
+                    ]}
+                    onPress={() => handleTabClick(tomorrow)}>
+                    <Text
+                      style={[
+                        styles.dateButtonText,
+                        isTabActive(tomorrow.format('YYYY-MM-DD')) &&
+                          styles.selectedDateButtonText,
+                      ]}>
+                      {tomorrow.format('DD')}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.dateButtonSubText,
+                        isTabActive(tomorrow.format('YYYY-MM-DD')) &&
+                          styles.selectedDateButtonText,
+                      ]}>
+                      Tomorrow
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.dateButton,
+                      isTabActive(nextTwoDays.format('YYYY-MM-DD')) &&
+                        styles.selectedDateButton,
+                    ]}
+                    onPress={() => handleTabClick(nextTwoDays)}>
+                    <Text
+                      style={[
+                        styles.dateButtonText,
+                        isTabActive(nextTwoDays.format('YYYY-MM-DD')) &&
+                          styles.selectedDateButtonText,
+                      ]}>
+                      {nextTwoDays.format('DD')}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.dateButtonSubText,
+                        isTabActive(nextTwoDays.format('YYYY-MM-DD')) &&
+                          styles.selectedDateButtonText,
+                      ]}>
+                      {nextTwoDays.format('ddd')}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.dateButton} onPress={openCalendar}>
+                    {!date ? (
+                      <View style={{alignItems: 'center'}}>
+                        <Feather
+                          name="calendar"
+                          size={20}
+                          color="teal"
+                          style={{paddingBottom: 4}}
+                        />
+                        <Text style={styles.dateButtonSubText}>Pick Date</Text>
+                      </View>
+                    ) : (
+                      <View style={{alignItems: 'center'}}>
+                        <Text style={styles.dateButtonText}>
+                          {moment(selectedDate).format('DD')}
+                        </Text>
+                        <Text style={styles.dateButtonSubText}>
+                          {moment(selectedDate).format('MMM')}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{height: 1, backgroundColor: '#eee', marginVertical: 20}} />
+
+                <Text style={styles.modalSectionTitle}>Select Start Time</Text>
+                <View style={{height: 250, marginTop: 10}}>
+                  {selectedDate ? (
+                    renderSlots()
+                  ) : (
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}>
+                      <Text style={{color: '#777', fontFamily: 'Poppins-Medium'}}>
+                        Please select a date to see available slots
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.confirmSlotButton,
+                  (!selectedDate || !selectedSlot) && {backgroundColor: '#ccc'},
+                ]}
+                disabled={!selectedDate || !selectedSlot}
+                onPress={() => {
+                  setDateTimeModalVisible(false);
+                  setAddressModalVisible(true);
+                }}>
+                <Text style={styles.confirmSlotButtonText}>Confirm Slot</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+          {/* =========== END: MODIFICATION =========== */}
+
+          {/* =========== START: MODIFICATION - New Address Modal =========== */}
+          <Modal
+            isVisible={isAddressModalVisible}
+            style={styles.bottomModal}
+            onBackdropPress={() => setAddressModalVisible(false)}>
+            <View style={[styles.modalViewContent, {height: '60%'}]}>
+              <View style={[styles.modalHeader, {justifyContent: 'space-between'}]}>
+                <Text style={styles.modalTitle}>Choose an Address</Text>
+                <TouchableOpacity onPress={() => setAddressModalVisible(false)}>
+                  <Text style={{color: 'teal', fontFamily: 'Poppins-Bold'}}>
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView>
+                {customeraddress.map((i, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={{
+                      flexDirection: 'row',
+                      marginTop: 15,
+                      alignItems: 'center',
+                    }}
+                    onPress={() => handleSelectedAddress(i)}>
+                    <View style={{flex: 0.15}}>
+                      <RadioButton.Android
+                        value={i}
+                        status={checked === i ? 'checked' : 'unchecked'}
+                        onPress={() => handleSelectedAddress(i)}
+                        color="teal"
+                      />
+                    </View>
+                    <View style={{flex: 0.85}}>
+                      <Text style={styles.addressType}>
+                        {i.save_as === 'other' ? i.other_data : i.save_as}
+                      </Text>
+                      <Text style={styles.addressText}>
+                        {i.platno}, {i.landmark}, {i.address}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                onPress={() => {
+                  setAddressModalVisible(false); // Close address modal first
+                  setTimeout(() => mapModal(), 300); // Then open map modal
+                }}
+                style={styles.addNewAddressButton}>
+                <AntDesign
+                  name="plus"
+                  size={18}
+                  style={{color: 'teal', marginRight: 10}}
+                />
+                <Text style={styles.addNewAddressText}>Add New Address</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+          {/* =========== END: MODIFICATION =========== */}
+
+          <Modal isVisible={ModalVisible1}>
+            <View
+              style={{
+                flexDirection: 'row',
+                backgroundColor: 'white',
+                padding: 15,
+              }}>
+              <ActivityIndicator size="large" />
+              <Text style={{color: 'black', fontSize: 23, marginLeft: 10}}>
+                Please wait.....
+              </Text>
+            </View>
+          </Modal>
+
+          <Modal isVisible={calenderModel}>
+            <View
+              style={{
+                padding: 15,
+              }}>
+              <TouchableOpacity
+                onPress={() => setcalenderModel(false)}
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  backgroundColor: 'white',
+                  zIndex: 1,
+                  borderRadius: 50,
+                }}>
+                <AntDesign name="closecircle" color="" size={35} />
+              </TouchableOpacity>
+              <Calendar
+                minDate={today.toISOString().split('T')[0]}
+                onDayPress={handleDayPress}
+                current={selectedDate || new Date().toISOString().split('T')[0]}
+                markedDates={{
+                  [selectedDate]: {
+                    selected: true,
+                    disableTouchEvent: true,
+                    selectedColor: 'teal',
+                  },
+                }}
+              />
+            </View>
+          </Modal>
+
+          <Modal isVisible={cancelationModel}>
+            <View style={styles.content}>
+              <TouchableOpacity
+                onPress={() => {
+                  setcancelationModel(false);
+                }}
+                style={{
+                  alignSelf: 'flex-end',
+                  backgroundColor: '',
+                  borderWidth: 1,
+                  borderRadius: 50,
+                  borderColor: 'gray',
+                  marginBottom: 20,
+                }}>
+                <Feather name="x" color="grey" size={25} />
+              </TouchableOpacity>
+              <Text style={styles.title}>
+                Vijay Home Services Cancellation Policy
+              </Text>
+              <Text style={styles.subtitle}>
+                At Vijay Home Services, we understand that plans can change. Our
+                cancellation policy is designed to be fair and transparent for
+                all our customers.
+              </Text>
+              <Text style={styles.sectionTitle}>
+                No Cancellation Charges !!
+              </Text>
+              <Text style={styles.sectionText}>
+                Before 4 Hours: If you cancel your service more than 4 hours
+                before the scheduled slot, there will be no cancellation
+                charges.
+              </Text>
+              <Text style={styles.sectionTitle}>Cancellation Charges !!</Text>
+              <Text style={styles.sectionText}>
+                Within 4 Hours to 1 Hour Before Scheduled Slot:
+                {'\n'}- Full House Cleaning: ₹500
+                {'\n'}- Sofa/Kitchen/Bathroom/Mini-Services Cleaning: ₹100
+                {'\n'}- Home Repair Services: ₹200
+                {'\n'}- Appliances Services: ₹200
+              </Text>
+              <Text style={styles.sectionText}>
+                Within 1 Hour and After Scheduled Slot:
+                {'\n'}- Full House Cleaning: ₹700
+                {'\n'}- Sofa/Kitchen/Bathroom/Mini-Services Cleaning: ₹150
+              </Text>
+              <Text style={styles.sectionText}>
+                We appreciate your understanding and cooperation. Please contact
+                us as soon as possible if you need to cancel or reschedule your
+                service to avoid any charges.
+              </Text>
+              <TouchableOpacity>
+                <Text></Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+
+          <View>
+            <BottomSheet hasDraggableIcon ref={bottomSheet} height={700}>
+              <View style={{flex: 1}}>
+                <ScrollView contentContainerStyle={{paddingBottom: 20}}>
+                  <View
+                    style={{
+                      backgroundColor: 'white',
+                      marginTop: 20,
+                      paddingLeft: 15,
+                    }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 10,
+                        marginTop: 10,
+                        paddingRight: 15,
+                      }}>
+                      <Text style={{fontSize: 14, color: 'black'}}>
+                        Selected Date:{' '}
+                        <Text style={{fontFamily: 'Poppins-Bold'}}>
+                          {selectedDate}
+                        </Text>
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          bottomSheet.current.close();
+                          setDateTimeModalVisible(true);
+                        }}>
+                        <Feather
+                          name="edit"
+                          color="grey"
+                          size={16}
+                          marginRight={5}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 10,
+                        paddingRight: 15,
+                      }}>
+                      <Text style={{fontSize: 14, color: 'black'}}>
+                        Selected Slot:{' '}
+                        <Text style={{fontFamily: 'Poppins-Bold'}}>
+                          {selectedSlot || 'None'}
+                        </Text>
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          bottomSheet.current.close();
+                          setDateTimeModalVisible(true);
+                        }}>
+                        <Feather
+                          name="edit"
+                          color="grey"
+                          size={16}
+                          marginRight={5}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 20,
+                        paddingRight: 15,
+                      }}>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: 'black',
+                          flex: 1,
+                          flexWrap: 'wrap',
+                        }}>
+                        Selected Address:{' '}
+                        <Text style={{fontFamily: 'Poppins-Bold'}}>
+                          {(() => {
+                            if (!Fulladd) return 'None';
+
+                            const platnoPart =
+                              Fulladd.platno &&
+                              String(Fulladd.platno).trim() !== ''
+                                ? String(Fulladd.platno).trim()
+                                : '';
+                            const landmarkPart =
+                              Fulladd.landmark &&
+                              String(Fulladd.landmark).trim() !== ''
+                                ? String(Fulladd.landmark).trim()
+                                : '';
+                            const addressPart =
+                              Fulladd.address &&
+                              String(Fulladd.address).trim() !== ''
+                                ? String(Fulladd.address).trim()
+                                : '';
+
+                            const combined = [
+                              platnoPart,
+                              landmarkPart,
+                              addressPart,
+                            ]
+                              .filter(part => part !== '')
+                              .join(', ');
+
+                            return combined || 'None';
+                          })()}
+                        </Text>
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          bottomSheet.current.close();
+                          setAddressModalVisible(true);
+                        }}>
+                        <Feather
+                          name="edit"
+                          color="grey"
+                          size={16}
+                          marginRight={5}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    {voucherdata.length > 0 ? (
+                      <View
+                        style={{
+                          paddingRight: 15,
+                          marginBottom: 20,
+                        }}>
+                        <Text
+                          style={{
+                            color: 'black',
+                            fontSize: 18,
+                            fontFamily: 'Poppins-Medium',
+                          }}>
+                          Coupons & Offers
+                        </Text>
+
+                        <View style={{flexDirection: 'row', marginTop: 10}}>
+                          <View style={{flex: 0.45}}>
+                            <TextInput
                               style={{
-                                backgroundColor: 'white',
+                                borderWidth: 1,
                                 borderRadius: 5,
-                                padding: 10,
-                                margin: 2,
-                                marginTop: -10,
+                                height: 45,
+                                paddingLeft: 15,
+                                color: 'black',
+                                fontSize: 14,
+                                borderColor: '#E0E0E0',
                               }}
-                              onPress={() => setcancelationModel(true)}>
+                              onChangeText={text => setVoucherCode(text)}
+                              placeholder="Enter Voucher Code"
+                              placeholderTextColor={'grey'}
+                              underlineColorAndroid={
+                                Platform.OS === 'android' ? 'white' : null
+                              }
+                            />
+                            <Text style={{color: 'red'}}>{validationMessage}</Text>
+                          </View>
+                          <View style={{flex: 0.1}}></View>
+                          <View style={{flex: 0.45}}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                const result = applyCouponCode();
+                                setDiscountedTotal(result);
+                              }}
+                              style={{
+                                backgroundColor: 'darkred',
+                                padding: 10,
+                                borderRadius: 5,
+                                height: 45,
+                                justifyContent: 'center',
+                              }}>
                               <Text
                                 style={{
-                                  fontSize: 15,
-                                  color: 'darkred',
-                                  fontFamily: 'Poppins-Bold',
+                                  color: 'white',
+                                  fontSize: 14,
+                                  textAlign: 'center',
                                 }}>
-                                Cancellation Policy
+                                Apply
                               </Text>
                             </TouchableOpacity>
                           </View>
                         </View>
                       </View>
-                    </ScrollView>
+                    ) : null}
 
-                    {/* NEW: Sticky footer for the button */}
-                    <View style={styles.bottomSheetFooter}>
-                      <TouchableOpacity
-                        style={styles.primaryPaymentButton}
-                        onPress={addtreatmentdetails}>
-                        <Text style={styles.paymentButtonText}>Book Now</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </BottomSheet>
-              </View>
-              {/* =========== END: MODIFIED BottomSheet =========== */}
-
-
-              <View style={styles.centeredView}>
-                <Modal
-                  animationType="slide"
-                  transparent={true}
-                  visible={locationModalVisible}
-                  onRequestClose={() => {
-                    setlocationModalVisible(false);
-                  }}>
-                  <View
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      backgroundColor: 'white',
-                      width: '100%',
-                      elevation: 15,
-                      borderRadius: 10,
-                      height: 'auto',
-                    }}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setlocationModalVisible(false);
-                      }}
+                    <Text
                       style={{
-                        alignSelf: 'flex-end',
-                        backgroundColor: '',
-                        borderWidth: 1,
-                        borderRadius: 50,
-                        borderColor: 'gray',
-                        padding: 5,
+                        color: 'black',
+                        backgroundColor: 'rgb(214, 202, 140)',
+                        width: 190,
+                        borderTopRightRadius: 80,
+                        padding: 3,
+                        fontSize: 17,
+                        fontFamily: 'Poppins-Medium',
                       }}>
-                      <Feather name="x" color="black" size={29} />
-                    </TouchableOpacity>
-                    <View style={{margin: 15}}>
-                      <View>
-                        <Text
-                          style={{
-                            color: 'black',
-                            fontSize: 17,
-                            fontFamily: 'Poppins-Medium',
-                          }}>
-                          Confirm your location
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          height: 1,
-                          backgroundColor: 'lightgray',
-                          marginTop: 15,
-                        }}
-                      />
+                      Payment summary
+                    </Text>
 
-                      <View style={{flex: 0.85}}>
-                        <View style={{flexDirection: 'row'}}>
-                          <Text
+                    <View
+                      style={{
+                        paddingRight: 15,
+                      }}>
+                      <View style={{flexDirection: 'row', margin: 10}}>
+                        <View style={{flex: 0.8}}>
+                          <Text style={styles.summarytext}>Total Amount</Text>
+                        </View>
+                        <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                          <View
                             style={{
-                              color: 'black',
-                              marginTop: 20,
-                              fontSize: 13,
-                              fontFamily: 'Poppins-Medium',
+                              flexDirection: 'row',
+                              textDecorationLine: 'line-through',
                             }}>
-                            {Fulladd?.address}
-                          </Text>
+                            <FontAwesome
+                              name="rupee"
+                              color="black"
+                              size={14}
+                              style={{marginTop: 3}}
+                            />
+                            <Text
+                              style={{
+                                textDecorationLine: 'line-through',
+                                color: 'black',
+                              }}>
+                              {Carttotal1 + totaladdon1}
+                            </Text>
+                          </View>
                         </View>
                       </View>
 
-                      <View
-                        style={{
-                          height: 1,
-                          backgroundColor: 'lightgray',
-                          marginTop: 15,
-                        }}
-                      />
-                      <TouchableOpacity
-                        onPress={mapModal}
-                        style={{
-                          flexDirection: 'row',
-                          marginRight: 10,
-                          marginTop: 15,
-                        }}>
-                        <AntDesign
-                          name="plus"
-                          size={16}
-                          style={{color: 'darkred', marginTop: 2}}
-                        />
+                      <View style={{flexDirection: 'row', margin: 10}}>
+                        <View style={{flex: 0.8}}>
+                          <Text style={styles.summarytext}>Discount</Text>
+                        </View>
+                        <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                          <View style={{flexDirection: 'row'}}>
+                            <Text style={styles.summarytext}>
+                              {couponDiscount !== Carttotal && appliedCoupon
+                                ? `${appliedCoupon.discountPercentage}%`
+                                : '0%'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
 
-                        <Text
+                      <View style={{flexDirection: 'row', margin: 10}}>
+                        <View style={{flex: 0.8}}>
+                          <Text style={styles.summarytext}>Taxes and Fee</Text>
+                        </View>
+                        <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                          <View style={{flexDirection: 'row'}}>
+                            <Text style={styles.summarytext}>{finalGST}</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={{flexDirection: 'row', margin: 10}}>
+                        <View style={{flex: 0.8}}>
+                          <Text style={styles.summarytext}>Saved</Text>
+                        </View>
+                        <View style={{flex: 0.2, alignItems: 'flex-end'}}>
+                          <View style={{flexDirection: 'row'}}>
+                            <FontAwesome
+                              name="rupee"
+                              color="rgb(30,135,226)"
+                              size={14}
+                              style={{marginTop: 3}}
+                            />
+                            <Text style={{color: 'rgb(30,135,226)'}}>
+                              {CartSavedtotal + FreqensaveAmt1}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {voucherCode ? (
+                        <View style={{flexDirection: 'row', margin: 10}}>
+                          <View style={{flex: 0.5}}>
+                            <Text style={styles.summarytext}>Coupon Code</Text>
+                          </View>
+                          <View style={{flex: 0.5, alignItems: 'flex-end'}}>
+                            <View style={{flexDirection: 'row'}}>
+                              <Text style={{fontSize: 12, color: 'green'}}>
+                                {voucherCode ? voucherCode : ''}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      ) : null}
+
+                      {discountAmount && couponDiscount + total1 >= 1500 ? (
+                        <View style={{flexDirection: 'row', margin: 5}}>
+                          <View style={{flex: 0.5, flexDirection: 'row'}}>
+                            <Checkbox
+                              status={isSelected ? 'checked' : 'unchecked'}
+                              onPress={handlePress}
+                            />
+                            <Text
+                              style={{
+                                marginTop: 10,
+                                fontFamily: 'Poppins-Medium',
+                                color: 'black',
+                              }}>
+                              Use wallet balance
+                            </Text>
+                          </View>
+                          <View style={{flex: 0.5, alignItems: 'flex-end'}}>
+                            <Text
+                              style={{
+                                fontSize: 15,
+                                color: 'green',
+                                marginRight: 5,
+                              }}>
+                              {discountAmount ? discountAmount.toFixed(2) : ''}
+                            </Text>
+                          </View>
+                        </View>
+                      ) : null}
+
+                      <Text
+                        style={{
+                          borderBottomWidth: 1,
+                          borderColor: 'lightgray',
+                        }}></Text>
+
+                      <View style={{flexDirection: 'row', margin: 10}}>
+                        <View style={{flex: 0.8}}>
+                          <Text
+                            style={{
+                              fontSize: 18,
+                              color: 'black',
+                              fontFamily: 'Poppins-Medium',
+                            }}>
+                            Grand Total
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: 'grey',
+                            }}>
+                            (inc. Taxes & Other Charges)
+                          </Text>
+                        </View>
+
+                        <View
                           style={{
-                            marginLeft: 10,
-                            color: 'darkred',
-                            fontFamily: 'Poppins-Bold',
-                            fontSize: 15,
+                            flex: 0.25,
+                            alignItems: 'flex-end',
+                            flexDirection: 'row',
+                            alignItems: 'center',
                           }}>
-                          Add new address
-                        </Text>
-                      </TouchableOpacity>
+                          <FontAwesome
+                            name="rupee"
+                            color="black"
+                            size={16}
+                            style={{marginRight: 2}}
+                          />
+
+                          <Text
+                            style={{
+                              fontSize: 19,
+                              color: 'black',
+                              fontFamily: 'Poppins-Medium',
+                              fontWeight: 'bold',
+                            }}>
+                            {finalGrandTotal}
+                          </Text>
+                        </View>
+                      </View>
+                      <View>
+                        <TouchableOpacity
+                          style={{
+                            backgroundColor: 'white',
+                            borderRadius: 5,
+                            padding: 10,
+                            margin: 2,
+                            marginTop: -10,
+                          }}
+                          onPress={() => setcancelationModel(true)}>
+                          <Text
+                            style={{
+                              fontSize: 15,
+                              color: 'darkred',
+                              fontFamily: 'Poppins-Bold',
+                            }}>
+                            Cancellation Policy
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => {
-                        bottomSheet.current.show();
+                  </View>
+                </ScrollView>
+                <View style={styles.bottomSheetFooter}>
+                  <TouchableOpacity
+                    style={styles.primaryPaymentButton}
+                    onPress={addtreatmentdetails}>
+                    <Text style={styles.paymentButtonText}>Book Now</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </BottomSheet>
+          </View>
+          <Modal isVisible={mapModalVisible}>
+            <TouchableOpacity
+              onPress={() => setmapModalVisible(false)}
+              style={{
+                justifyContent: 'flex-end',
+                alignSelf: 'flex-end',
+                backgroundColor: 'white',
+                zIndex: 1,
+                borderRadius: 50,
+              }}>
+              <AntDesign name="closecircle" color="darkred" size={35} />
+            </TouchableOpacity>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{flex: 1, backgroundColor: 'white'}}>
+              <ScrollView contentContainerStyle={{flexGrow: 1}}>
+                <View style={{flex: 1}}>
+                  <View style={{height: 300, backgroundColor: 'grey'}}>
+                    <MapView
+                      ref={mapRef}
+                      style={{flex: 1}}
+                      initialRegion={{
+                        latitude: 12.9716,
+                        longitude: 77.5946,
+                        latitudeDelta: 0.0922,
+                        longitudeDelta: 0.0421,
                       }}
+                      onRegionChangeComplete={region =>
+                        debouncedRegionChange(region)
+                      }
+                    />
+                    <View style={styles.markerContent}>
+                      <FontAwesome name="map-pin" color={'green'} size={35} />
+                    </View>
+                    <GooglePlacesAutocomplete
+                      placeholder="Search location..."
+                      placeholderTextColor={'grey'}
+                      onPress={(data, details = null) => {
+                        if (details) {
+                          const {lat, lng} = details.geometry.location;
+                          const formattedAddress = data.description;
+                          setaddress(formattedAddress);
+                          setMarkerCoordinate({latitude: lat, longitude: lng});
+                          if (mapRef.current) {
+                            mapRef.current.animateToRegion({
+                              latitude: lat,
+                              longitude: lng,
+                              latitudeDelta: 0.005,
+                              longitudeDelta: 0.005,
+                            });
+                          }
+                        } else {
+                          searchLocation(data.description);
+                        }
+                      }}
+                      query={{
+                        key: 'YOUR_GOOGLE_API_KEY',
+                        language: 'en',
+                      }}
+                      fetchDetails={true}
+                      styles={{
+                        container: {
+                          position: 'absolute',
+                          top: 0,
+                          width: '100%',
+                          zIndex: 11,
+                          padding: 10,
+                        },
+                        textInput: {
+                          color: 'black',
+                          height: 48,
+                          fontSize: 16,
+                          backgroundColor: 'white',
+                          elevation: 5,
+                        },
+                        listView: {backgroundColor: 'white', elevation: 5},
+                        description: {color: 'black'},
+                      }}
+                    />
+
+                    <View
                       style={{
-                        justifyContent: 'center',
+                        position: 'absolute',
+                        zIndex: 12,
+                        top: 22,
+                        right: 20,
+                      }}>
+                      <EvilIcons name="search" color="black" size={30} />
+                    </View>
+                  </View>
+                  <View style={{padding: 15}}>
+                    <TouchableOpacity
+                      onPress={getLocation}
+                      style={{
+                        backgroundColor: 'orange',
+                        padding: 10,
+                        borderRadius: 5,
                         alignItems: 'center',
+                        marginBottom: 15,
                       }}>
                       <Text
                         style={{
                           color: 'white',
-                          padding: 10,
-                          textAlign: 'center',
-                          backgroundColor: 'darkred',
-                          marginTop: 30,
-                          width: '90%',
-                          borderRadius: 7,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          marginBottom: 10,
+                          fontFamily: 'Poppins-Medium',
                         }}>
-                        Proceed
+                        Use my current location
                       </Text>
                     </TouchableOpacity>
-                  </View>
-                </Modal>
-              </View>
+                    <Text
+                      style={{
+                        ...styles.label,
+                        color: 'black',
+                        fontSize: 15,
+                        fontFamily: 'Poppins-Medium',
+                      }}>
+                      Address
+                    </Text>
+                    <TextInput
+                      style={[
+                        styles.inputMap,
+                        {minHeight: 45, height: 'auto', paddingTop: 10},
+                      ]}
+                      value={address}
+                      onChangeText={text => setaddress(text)}
+                      placeholder="Address"
+                      placeholderTextColor="grey"
+                      multiline
+                    />
 
-              {/* =========== START: MODIFICATION 2 - Replace the entire map modal =========== */}
-              <Modal isVisible={mapModalVisible}>
-                <TouchableOpacity
-                  onPress={() => setmapModalVisible(false)}
-                  style={{
-                    justifyContent: 'flex-end',
-                    alignSelf: 'flex-end',
-                    backgroundColor: 'white',
-                    zIndex: 1,
-                    borderRadius: 50,
-                  }}>
-                  <AntDesign name="closecircle" color="darkred" size={35} />
-                </TouchableOpacity>
-                <KeyboardAvoidingView
-                  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                  style={{flex: 1, backgroundColor: 'white'}}>
-                  <ScrollView contentContainerStyle={{flexGrow: 1}}>
-                    <View style={{flex: 1}}>
-                      {/* Map and Search Section */}
-                     <View style={{height: 300, backgroundColor: 'grey'}}>
-  {/* The MapView and the Pin must be siblings, filling the container */}
-  <MapView
-    ref={mapRef}
-    style={{flex: 1}} // The map fills the 350px container
-    initialRegion={{
-      latitude: 12.9716, // Default to Bangalore
-      longitude: 77.5946,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
-    }}
-    onRegionChangeComplete={region => debouncedRegionChange(region)}
-  />
-
-  {/* The Centered Pin, which is now correctly centered over the MapView */}
-  <View style={styles.markerContent}>
-    <FontAwesome name="map-pin" color={'green'} size={35} />
-  </View>
-  
-  {/* The Search Bar floats on top without affecting the map's layout */}
-  <GooglePlacesAutocomplete
-    placeholder="Search location..."
-    placeholderTextColor={'grey'}
-    onPress={(data, details = null) => {
-      if (details) {
-        const {lat, lng} = details.geometry.location;
-        const formattedAddress = data.description;
-        setaddress(formattedAddress);
-        setMarkerCoordinate({latitude: lat, longitude: lng});
-        if (mapRef.current) {
-          mapRef.current.animateToRegion({
-            latitude: lat,
-            longitude: lng,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          });
-        }
-      } else {
-        searchLocation(data.description);
-      }
-    }}
-    query={{
-      key: 'AIzaSyBF48uqsKVyp9P2NlDX-heBJksvvT_8Cqk', // Your API key
-      language: 'en',
-    }}
-    fetchDetails={true}
-    styles={{
-      container: {
-        // This is the key change: position it absolutely
-        position: 'absolute',
-        top: 0,
-        width: '100%',
-        zIndex: 11, // Make sure it's on top of the map
-        padding: 10,
-      },
-      textInput: {
-        color: 'black',
-        height: 48,
-        fontSize: 16,
-        backgroundColor: 'white', // Ensure it has a background
-        elevation: 5, // Add shadow for better visibility
-      },
-      listView: {backgroundColor: 'white', elevation: 5},
-      description: {color: 'black'},
-    }}
-  />
-  
-  {/* You can also add the search icon on top if needed */}
-   <View style={{ position: 'absolute', zIndex: 12, top: 22, right: 20 }}>
-      <EvilIcons name="search" color="black" size={30} />
-    </View>
-</View>
-                      {/* Form Section */}
-                      <View style={{padding: 15}}>
-                        <TouchableOpacity
-                          onPress={getLocation}
-                          style={{
-                            backgroundColor: 'orange',
-                            padding: 10,
-                            borderRadius: 5,
-                            alignItems: 'center',
-                            marginBottom: 15,
-                          }}>
-                          <Text
-                            style={{
-                              color: 'white',
-                              fontFamily: 'Poppins-Medium',
-                            }}>
-                            Use my current location
-                          </Text>
-                        </TouchableOpacity>
-
-                        {/* Editable Address Field */}
-                        <Text style={{ ...styles.label, color: 'black', fontSize: 15, fontFamily: 'Poppins-Medium',}}>Address</Text>
-                        <TextInput
-                          style={[styles.inputMap, {minHeight: 45, height: 'auto', paddingTop: 10}]}
-                          value={address}
-                          onChangeText={text => setaddress(text)}
-                          placeholder="Address"
-                          placeholderTextColor="grey"
-                          multiline
-                        />
-
-                        <View style={{marginTop: 10}}>
-                          <View style={{flexDirection: 'row'}}>
-                            <Text style={styles.label}>
-                              House / Flat / Block No
-                            </Text>
-                            <Text style={{color: 'red'}}> *</Text>
-                          </View>
-                          <TextInput
-                            style={styles.inputMap}
-                            value={platNo}
-                            onChangeText={text => setPlatNo(text)}
-                          />
-                        </View>
-
-                        <View style={{marginTop: 10}}>
-                          <View style={{flexDirection: 'row'}}>
-                            <Text style={styles.label}>
-                              Landmark / Society name
-                            </Text>
-                            <Text style={{color: 'red'}}> *</Text>
-                          </View>
-                          <TextInput
-                            style={styles.inputMap}
-                            value={landmark}
-                            onChangeText={text => setLandmark(text)}
-                          />
-                        </View>
-
-                        <View style={{flexDirection: 'row', marginTop: 10}}>
-                          <Text style={styles.label}>Save as</Text>
-                          <Text style={{color: 'red'}}> *</Text>
-                        </View>
-
-                        <View style={{flexDirection: 'row', marginTop: 5}}>
-                          <TouchableOpacity
-                            onPress={handleHomePress}
-                            style={homeButtonStyle}>
-                            <Text
-                              style={{
-                                color: 'black',
-                                fontSize: 14,
-                                textAlign: 'center',
-                              }}>
-                              Home
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            onPress={handleOthersPress}
-                            style={othersButtonStyle}>
-                            <Text
-                              style={{
-                                color: 'black',
-                                fontSize: 14,
-                                textAlign: 'center',
-                              }}>
-                              Others
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        {isOthersClicked ? (
-                          <View style={{marginTop: 10}}>
-                            <TextInput
-                              style={styles.inputMap}
-                              value={otherData}
-                              onChangeText={text => setotherData(text)}
-                              placeholder="e.g. Work, Friend's house"
-                            />
-                          </View>
-                        ) : null}
-
-                        <TouchableOpacity
-                          onPress={addcustomeraddresss}
-                          disabled={!canSubmitNewAddress}
-                          style={[
-                            styles.submitButton,
-                            {marginTop: 20},
-                            !canSubmitNewAddress && {opacity: 0.5},
-                          ]}>
-                          <Text style={styles.submitButtonText}>Save</Text>
-                        </TouchableOpacity>
+                    <View style={{marginTop: 10}}>
+                      <View style={{flexDirection: 'row'}}>
+                        <Text style={styles.label}>House / Flat / Block No</Text>
+                        <Text style={{color: 'red'}}> *</Text>
                       </View>
+                      <TextInput
+                        style={styles.inputMap}
+                        value={platNo}
+                        onChangeText={text => setPlatNo(text)}
+                      />
                     </View>
-                  </ScrollView>
-                </KeyboardAvoidingView>
-              </Modal>
-              {/* =========== END: MODIFICATION 2 =========== */}
 
-            </View>
-          </View>
+                    <View style={{marginTop: 10}}>
+                      <View style={{flexDirection: 'row'}}>
+                        <Text style={styles.label}>Landmark / Society name</Text>
+                        <Text style={{color: 'red'}}> *</Text>
+                      </View>
+                      <TextInput
+                        style={styles.inputMap}
+                        value={landmark}
+                        onChangeText={text => setLandmark(text)}
+                      />
+                    </View>
+
+                    <View style={{flexDirection: 'row', marginTop: 10}}>
+                      <Text style={styles.label}>Save as</Text>
+                      <Text style={{color: 'red'}}> *</Text>
+                    </View>
+
+                    <View style={{flexDirection: 'row', marginTop: 5}}>
+                      <TouchableOpacity
+                        onPress={handleHomePress}
+                        style={homeButtonStyle}>
+                        <Text
+                          style={{
+                            color: 'black',
+                            fontSize: 14,
+                            textAlign: 'center',
+                          }}>
+                          Home
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleOthersPress}
+                        style={othersButtonStyle}>
+                        <Text
+                          style={{
+                            color: 'black',
+                            fontSize: 14,
+                            textAlign: 'center',
+                          }}>
+                          Others
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {isOthersClicked ? (
+                      <View style={{marginTop: 10}}>
+                        <TextInput
+                          style={styles.inputMap}
+                          value={otherData}
+                          onChangeText={text => setotherData(text)}
+                          placeholder="e.g. Work, Friend's house"
+                        />
+                      </View>
+                    ) : null}
+
+                    <TouchableOpacity
+                      onPress={addcustomeraddresss}
+                      disabled={!canSubmitNewAddress}
+                      style={[
+                        styles.submitButton,
+                        {marginTop: 20},
+                        !canSubmitNewAddress && {opacity: 0.5},
+                      ]}>
+                      <Text style={styles.submitButtonText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </Modal>
         </View>
       )}
     </View>
@@ -3181,7 +2908,7 @@ function Cartbook({navigation}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#F5F5F5',
   },
   originalPrice: {
     textDecorationLine: 'line-through',
@@ -3199,93 +2926,174 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Poppins-Medium',
   },
-  textinput: {
+  card: {
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
     borderRadius: 10,
+    padding: 10,
     backgroundColor: 'white',
-    fontSize: 16,
-    flex: 0.3,
+    elevation: 5,
+    marginTop: 10,
+    margin: 5,
   },
-  elevation: {
+  customerInput: {
     elevation: 15,
-    marginTop: 20,
-  },
-  textinput1: {
-    borderRadius: 10,
     backgroundColor: 'white',
-    fontSize: 16,
-    flex: 0.4,
-    marginLeft: 10,
-  },
-  elevation1: {
-    elevation: 15,
-    flex: 0.5,
-  },
-  footer: {
-    backgroundColor: 'red',
-  },
-  textinput2: {
-    borderRadius: 10,
-    backgroundColor: 'white',
-    fontSize: 16,
-    marginTop: 5,
-    width: '100%',
-    padding: 20,
-  },
-  elevation2: {
-    elevation: 15,
-  },
-  button1: {
-    backgroundColor: 'blue',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingLeft: 10,
+    color: 'black',
+    height: 40,
     borderRadius: 5,
   },
-  modalView: {
-    backgroundColor: 'gray',
-    borderRadius: 0,
-    width: '100%',
-    position: 'absolute',
-    bottom: 0,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  button: {
+  // =========== START: MODIFICATION - New Styles for Modals and Buttons ===========
+  bottomButtonContainer: {
     padding: 10,
-    elevation: 2,
+    backgroundColor: '#FFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    elevation: 8,
   },
-  buttonOpen: {
-    backgroundColor: '#F194FF',
-  },
-  buttonClose: {
-    backgroundColor: '#2196F3',
-  },
-  textStyle: {
-    color: 'white',
-    fontFamily: 'Poppins-Medium',
-    textAlign: 'center',
-  },
-  modalText: {
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
+  bottomButton: {
+    backgroundColor: 'teal',
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 0,
-    width: '100%',
   },
-  text: {
+  bottomButtonText: {
     color: 'white',
+    fontSize: 18,
     fontFamily: 'Poppins-Bold',
   },
-  box3: {
+  bottomModal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  modalViewContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 15,
+    height: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: 'Poppins-Bold',
+    color: '#333',
+  },
+  modalSectionTitle: {
+    fontSize: 16,
     fontFamily: 'Poppins-Medium',
+    color: '#555',
+  },
+  dateButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    width: '23%',
+  },
+  selectedDateButton: {
+    backgroundColor: 'teal',
+  },
+  dateButtonText: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 18,
+    color: 'teal',
+  },
+  dateButtonSubText: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: 14,
+    color: '#555',
+  },
+  selectedDateButtonText: {
+    color: 'white',
+  },
+  slotSection: {
+    marginBottom: 15,
+  },
+  slotHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  slotHeaderText: {
+    marginLeft: 8,
+    fontFamily: 'Poppins-Medium',
+    color: '#333',
+    fontSize: 15,
+  },
+  slotGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  slotButton: {
+    width: '31%',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  selectedSlotButton: {
+    backgroundColor: 'teal',
+    borderColor: 'teal',
+  },
+  slotButtonText: {
     color: 'black',
+    fontFamily: 'Poppins-Medium',
+  },
+  selectedSlotButtonText: {
+    color: 'white',
+  },
+  confirmSlotButton: {
+    backgroundColor: 'teal',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 'auto',
+  },
+  confirmSlotButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'Poppins-Bold',
+  },
+  addressType: {
+    color: 'black',
+    fontFamily: 'Poppins-Bold',
+    fontSize: 17,
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#555',
+    fontFamily: 'Poppins-Regular',
+  },
+  addNewAddressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  addNewAddressText: {
+    color: 'teal',
+    fontFamily: 'Poppins-Bold',
+    fontSize: 16,
+  },
+  // =========== END: MODIFICATION - New Styles ===========
+  bottomSheetFooter: {
+    padding: 15,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
   paymentButtonText: {
     color: 'white',
@@ -3300,150 +3108,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 3,
     width: '100%',
-  },
-  button1: {
-    backgroundColor: 'darkred',
-    borderRadius: 10,
-    padding: 10,
-    width: '100%',
-    marginTop: 20,
-  },
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 22,
-  },
-  modalView: {
-    backgroundColor: 'white',
-    alignItems: 'center',
-    shadowColor: '#000',
-    width: '100%',
-    position: 'absolute',
-    bottom: 0,
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
-    padding: 25,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 15,
-  },
-
-  inc: {
-    flexDirection: 'row',
-    padding: 6,
-    marginTop: 5,
-    borderWidth: 1,
-    borderColor: 'lightgrey',
-    borderRadius: 10,
-    backgroundColor: 'white',
-  },
-
-  box: {
-    flex: 0.33,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignContent: 'center',
-    borderWidth: 1,
-    marginRight: 5,
-    padding: 5,
-    borderColor: 'lightgrey',
-    borderRadius: 7,
-    textAlign: 'center',
-    height: 'auto',
-    fontSize: 14,
-    elevation: 15,
-    color: 'black',
-    fontFamily: 'Poppins-Medium',
-    backgroundColor: 'lightblue',
-  },
-  box1: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignContent: 'center',
-    borderWidth: 1,
-    marginRight: 5,
-    padding: 6,
-    borderColor: 'gray',
-    borderRadius: 7,
-    textAlign: 'center',
-    height: 'auto',
-    flex: 0.3,
-    height: 35,
-  },
-  date: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignContent: 'center',
-    borderWidth: 1,
-    padding: 6,
-    borderColor: 'lightgrey',
-    borderRadius: 7,
-    textAlign: 'center',
-    height: 'auto',
-    elevation: 15,
-    backgroundColor: 'lightblue',
-  },
-  date1: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignContent: 'center',
-    borderWidth: 1,
-    padding: 6,
-    borderColor: 'lightgrey',
-    borderRadius: 7,
-    textAlign: 'center',
-    height: 'auto',
-    elevation: 15,
-    backgroundColor: 'darkred',
-  },
-  address: {
-    backgroundColor: 'white',
-    padding: 10,
-    borderWidth: 1,
-    margin: 15,
-    borderRadius: 10,
-    flexDirection: 'row',
-    elevation: 15,
-    borderColor: 'lightgrey',
-  },
-  slotRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 20,
-  },
-  slotBox: {
-    flex: 1,
-    borderWidth: 1,
-    padding: 6,
-    fontSize: 12,
-    borderColor: 'skyblue',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: 5,
-    backgroundColor: 'skyblue',
-    elevation: 15,
-    borderRadius: 5,
-  },
-  boxText: {
-    fontSize: 14,
-  },
-  modalContainer: {
-    justifyContent: 'center',
-    width: '100%',
-    position: 'absolute',
-    bottom: 0,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 5,
   },
   label: {
     color: 'black',
@@ -3461,63 +3125,6 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     borderWidth: 1,
   },
-  card: {
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: 'white',
-    elevation: 5,
-    marginTop: 10,
-    margin: 5,
-  },
-  remove: {
-    padding: 5,
-    borderWidth: 1,
-    borderColor: 'green',
-    color: 'green',
-    borderRadius: 5,
-    textAlign: 'center',
-  },
-  btm: {
-    position: 'absolute',
-    bottom: 0,
-    backgroundColor: 'white',
-    padding: 10,
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  title: {
-    fontSize: 18,
-    color: 'black',
-    marginBottom: 10,
-    fontFamily: 'Poppins-Bold',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'black',
-    marginBottom: 10,
-    fontFamily: 'Poppins-Medium',
-  },
-  separator: {
-    fontSize: 18,
-    fontFamily: 'Poppins-Bold',
-    marginBottom: 10,
-    color: 'black',
-  },
-  input: {
-    width: '100%',
-    height: 40,
-    borderColor: '#CCCCCC',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingLeft: 10,
-    marginBottom: 20,
-    marginTop: 20,
-    fontFamily: 'Poppins-Light',
-    color: 'black',
-  },
   submitButton: {
     backgroundColor: 'darkred',
     width: '100%',
@@ -3530,18 +3137,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Poppins-Bold',
   },
-  closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    padding: 5,
-  },
   markerContent: {
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginLeft: -17.5, // Half of size
-    marginTop: 20,   // size
+    marginLeft: -17.5,
+    marginTop: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3569,71 +3170,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Poppins-Medium',
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontFamily: 'Poppins-Medium',
-    marginBottom: 20,
-  },
-  slot: {
-    padding: 10,
-    borderWidth: 1,
-    borderColor: 'gray',
-    borderRadius: 5,
-    marginVertical: 5,
-    width: '100%',
-    alignItems: 'center',
-  },
-  slotText: {
-    fontSize: 16,
+  subtitle: {
+    fontSize: 14,
     color: 'black',
-  },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: 'darkred',
-    padding: 10,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: 'white',
-    fontSize: 16,
+    marginBottom: 10,
     fontFamily: 'Poppins-Medium',
-  },
-  selectedSlotText: {
-    fontSize: 18,
-    fontFamily: 'Poppins-Medium',
-    color: 'black',
-  },
-  customerInput: {
-    elevation: 15,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingLeft: 10,
-    color: 'black',
-    height: 40,
-    borderRadius: 5,
-  },
-  // NEW STYLE FOR STICKY FOOTER
-  bottomSheetFooter: {
-    padding: 15,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
 });
 
 export default Cartbook;
-

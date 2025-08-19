@@ -83,34 +83,38 @@ function Cart({navigation}) {
                   <View style={{flex: 0.7}}>
                     <View style={{marginLeft: 5}}>
                       <View></View>
+
                       <Text
                         style={{
                           fontSize: 16,
-                          fontFamily: 'Poppins-Bold',
-                          color: 'darkred',
-                        }}>
-                        {item.planName}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontFamily: 'Poppins-Bold',
-                          color: 'black',
+                          fontFamily: 'Roboto',
+                          fontWeight: 'bold',
+                          color: '#36454F',
                         }}>
                         {item.service?.serviceName}
+                      </Text>
+                        <Text
+                        style={{
+                          fontSize: 16,
+                          fontFamily: 'Roboto-Bold',
+                          color: 'grey',
+                        }}>
+                        {item.planName}
                       </Text>
 
                       <View style={{flexDirection: 'row'}}>
                         <Text
                           style={{
-                            marginLeft: 10,
+                            marginLeft: 0,
                             color: 'grey',
                             textDecorationLine: 'line-through',
+                            fontFamily: 'Roboto-Bold',
+                            fontSize: 16,
                           }}>
-                          <FontAwesome name="rupee" size={14} />
+                          
                           {item.planPrice}
                         </Text>
-                        <Text style={{marginLeft: 10, color: 'grey'}}>
+                        <Text style={{marginLeft: 10, color: 'black', fontFamily: 'Roboto-Bold', fontSize: 16, fontWeight: 'bold'}}>
                           <FontAwesome name="rupee" size={14} />{' '}
                           {item.offerprice}
                         </Text>
@@ -119,21 +123,23 @@ function Cart({navigation}) {
                   </View>
                   <View style={{flex: 0.3}}>
                     <View
-                      style={{flexDirection: 'row', justifyContent: 'center'}}>
+                      style={{flexDirection: 'row', justifyContent: 'center',}}>
                       <FontAwesome
                         name="rupee"
                         size={14}
-                        color="black"
-                        style={{marginTop: 4}}
+                        color="#191970"
+                        style={{marginTop: 8}}
                       />
 
                       <Text
                         style={{
                           textAlign: 'center',
                           marginLeft: 2,
-                          color: 'black',
-                          fontSize: 15,
-                          fontFamily: 'Poppins-Medium',
+                          color: '#191970',
+                          fontSize: 16,
+                          fontFamily: 'Roboto-Medium',
+                          fontWeight: 'bold',
+                          marginTop: 4
                         }}>
                         {item.qty * item.offerprice}
                       </Text>
@@ -142,12 +148,16 @@ function Cart({navigation}) {
                     <View
                       style={{
                         flexDirection: 'row',
-                        marginTop: 10,
-                        backgroundColor: 'green',
-                        elevation: 15,
+                        marginTop: 4,
+                        backgroundColor: 'white',
+                       
                         padding: 5,
                         justifyContent: 'center',
-                        width: 100,
+                        width: 80,
+                        borderColor: '#1434A4',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        marginLeft: 10,
                       }}>
                       <TouchableOpacity
                         style={{}}
@@ -160,13 +170,14 @@ function Cart({navigation}) {
                         }}>
                         <Text>
                           <AntDesign
-                            name="minuscircleo"
+                            name="minus"
                             size={18}
-                            color="white"
+                            color="#1434A4"
+                        
                           />{' '}
                         </Text>
                       </TouchableOpacity>
-                      <Text style={{color: 'white', marginLeft: 5}}>
+                      <Text style={{color: '#1434A4', marginLeft: 5, fontFamily: 'Roboto-Bold', fontSize: 16, fontWeight: 'bold'}}>
                         {item.qty}
                       </Text>
 
@@ -175,9 +186,9 @@ function Cart({navigation}) {
                         onPress={() => handle(item)}>
                         <Text>
                           <AntDesign
-                            name="pluscircleo"
+                            name="plus"
                             size={18}
-                            color="white"
+                            color="#1434A4"
                           />
                         </Text>
                       </TouchableOpacity>
@@ -237,23 +248,24 @@ function Cart({navigation}) {
 <Text>clear</Text>
       </TouchableOpacity > */}
       <View style={styles.btm}>
-        <View style={{flexDirection: 'row'}}>
+        <View style={{flexDirection: 'row',alignItems: 'center'}}>
           <Text
-            style={{color: 'black', fontSize: 18, fontFamily: 'Poppins-Bold'}}>
+            style={{color: '#343434', fontSize: 18, fontFamily: 'Roboto-Bold', fontWeight: 'bold',paddingLeft: 10}}>
             Total :
           </Text>
           <Text
-            style={{fontSize: 18, fontFamily: 'Poppins-Bold', color: 'black'}}>
+            style={{fontSize: 18, fontFamily: 'Roboto-Bold', color: '#343434', fontWeight: 'bold',paddingLeft: 5}}>
             {Carttotal}
           </Text>
         </View>
         {MyCartItmes !== undefined ? (
           <TouchableOpacity
             style={{
-              backgroundColor: 'green',
-              padding: 5,
+              backgroundColor: '#5D3FD3',
+              padding: 10,
               borderRadius: 5,
-              width: 180,
+              width: 190,
+
             }}
             onPress={() => navigation.navigate('cartbook')}>
             <Text

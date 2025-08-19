@@ -37,8 +37,9 @@ import ContentLoader from 'react-native-easy-content-loader';
 import moment from 'moment';
 import YoutubeIframe from 'react-native-youtube-iframe';
 import Shimmer from 'react-native-shimmer';
-import Icon from 'react-native-vector-icons/FontAwesome5';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import Swiper from 'react-native-swiper';
+
 
 function Repairing({navigation}) {
   const dispatch = useDispatch();
@@ -962,7 +963,7 @@ function Repairing({navigation}) {
       {isLoading || isUserLoading ? (
         <Loader />
       ) : (
-        <View style={{flex: 1}}>
+        <View style={{flex: 1, backgroundColor: 'white'}}>
           <ScrollView
             ref={scrollViewRef}
             refreshControl={
@@ -978,18 +979,20 @@ function Repairing({navigation}) {
                 repeat
                 shouldPlay={true}
                 isMuted={true}
-                style={{width: '100%', height: 180}}
+                style={{width: '100%', height: 150}}
                 onLoad={onLoad}
                 onError={e => console.log('Video Error: ', e)}
               />
             )}
 
-            <View style={{margin: 10}}>
+            <View style={{margin: 20, marginTop: 10,}}>
               <Text
                 style={{
                   color: 'black',
-                  fontSize: 18,
-                  fontFamily: 'Poppins-Bold',
+                  fontSize: 22,
+                  fontFamily: 'Segoe UI',
+                  fontWeight: 'bold',
+                
                 }}>
                 {cdata.subcategory}
               </Text>
@@ -999,11 +1002,12 @@ function Repairing({navigation}) {
                   flexDirection: 'row',
                   justifyContent: 'space-between',
                 }}>
-                <View style={{flexDirection: 'row', marginTop: 16}}>
+                <View style={{flexDirection: 'row', marginTop: 4}}>
                   <View style={{flexDirection: 'row'}}>
+                    <AntDesign name="star" color="#36454F" size={14} />
                     <Text
                       style={{
-                        color: 'black',
+                        color: '#36454F',
                         fontSize: 14,
                         marginTop: -1,
                         paddingRight: 5,
@@ -1011,113 +1015,28 @@ function Repairing({navigation}) {
                       {' '}
                       4.9
                     </Text>
-                    <AntDesign name="star" color="gold" size={14} />
-                    <AntDesign name="star" color="gold" size={14} />
-                    <AntDesign name="star" color="gold" size={14} />
-                    <AntDesign name="star" color="gold" size={14} />
-                    <AntDesign name="star" color="gold" size={14} />
                   </View>
-                  <Text style={{color: 'black', fontSize: 14, marginTop: -2}}>
+                  <Text style={{color: '#36454F', fontSize: 14, marginTop: -2}}>
                     {' '}
-                    (9.1T)
+                    (9.1 thousand)
                   </Text>
                 </View>
 
-                <View style={{flex: 0.2}}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'flex-end',
-                    }}>
-                    <TouchableOpacity onPress={handlePhoneCall}>
-                      <Image
-                        source={require('../../../assets/icons8-call-2.gif')}
-                        style={{
-                          width: 50,
-                          height: 30,
-                          marginTop: 3,
-                          resizeMode: 'contain',
-                          marginRight: 25,
-                        }}
-                      />
-                    </TouchableOpacity>
+               <View style={{flex: 0.2, marginTop: 2}}>
+      <View style={styles.container}>
+        <TouchableOpacity onPress={handlePhoneCall}>
+          <Icon name="phone" size={28} color="#1B1212" style={styles.icon} />
+        </TouchableOpacity>
 
-                    <TouchableOpacity onPress={handleWhatsAppCall}>
-                      <Image
-                        source={require('../../../assets/icons8-whatsapp.gif')}
-                        style={{
-                          width: 40,
-                          height: 40,
-                          marginBottom: 5,
-                        }}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
+        <TouchableOpacity onPress={handleWhatsAppCall}>
+          <Icon name="whatsapp" size={28} color="#1B1212" />
+        </TouchableOpacity>
+      </View>
+    </View>
               </View>
             </View>
 
-            <View>
-              {offerBannerdata?.length > 0 ? (
-                <Swiper
-                  ref={swiperRef}
-                  horizontal={true}
-                  showsPagination={false}
-                  loop={true}
-                  autoplay={false}
-                  removeClippedSubviews={false}
-                  style={{height: 90}}>
-                  {offerBannerdata.map((i, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={{
-                        flexDirection: 'row',
-                        backgroundColor: 'lightblue',
-                        padding: 10,
-                        paddingBottom: 15,
-                        paddingTop: 15,
-                        borderRadius: 2,
-                        marginRight: 10,
-                        marginLeft: 10,
-                      }}>
-                      <View
-                        style={{
-                          flex: 0.1,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}>
-                        <Image
-                          source={{
-                            uri: `https://api.vijayhomesuperadmin.in/offerbanner/${i.icon}`,
-                          }}
-                          style={{width: 20, height: 20, marginLeft: 10}}
-                        />
-                      </View>
-                      <View style={{flex: 1, marginLeft: 30}}>
-                        <Text
-                          style={{
-                            color: 'black',
-                            fontSize: 12,
-                            fontFamily: 'Poppins-Medium',
-                          }}>
-                          {i.header}
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            marginTop: 5,
-                            color: 'black',
-                          }}>
-                          {i.desc}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </Swiper>
-              ) : (
-                <></>
-              )}
-            </View>
+            
 
             {subcategoryMapping[cdata.subcategory] ? (
               <>
@@ -1126,6 +1045,15 @@ function Repairing({navigation}) {
                     flexDirection: 'row',
                     flexWrap: 'wrap',
                     paddingLeft: 15,
+                    backgroundColor: 'white',
+                    paddingBottom: 10,
+                    borderRadius: 10,
+                    paddingTop: 15,
+                    marginBottom: 10,
+                    borderTopColor: '#f5f5f5',
+                    borderTopWidth: 10,
+                    borderBottomColor: '#f5f5f5',
+                    borderBottomWidth: 10,
                   }}>
                   {subcategoryMapping[cdata.subcategory].map((item, index) => (
                     <TouchableOpacity
@@ -1143,8 +1071,8 @@ function Repairing({navigation}) {
                       <Image
                         source={item.image}
                         style={{
-                          width: 95,
-                          height: 95,
+                          width: 80,
+                          height: 80,
                           resizeMode: 'cover',
                           borderRadius: 5,
                           padding: 0,
@@ -1207,7 +1135,7 @@ function Repairing({navigation}) {
 
             <View>
               {Servicedata.length > 0 ? (
-                <View style={{margin: 10, borderColor: '#eee'}}>
+                <View style={{margin: 20, borderColor: '#eee'}}>
                   {Servicedata.sort(
                     (a, b) => parseInt(a.order) - parseInt(b.order),
                   ).map((item, index) => {
@@ -1227,25 +1155,18 @@ function Repairing({navigation}) {
                             {item.servicetitle ? (
                               <View>
                                 {(() => {
-                                  let imageSource;
-                                  if (
-                                    item.servicetitle.includes('Essential')
-                                  ) {
-                                    imageSource = require('../../../assets/essential.png');
-                                  } else if (
-                                    item.servicetitle.includes('Standard')
-                                  ) {
-                                    imageSource = require('../../../assets/standard.png');
-                                  } else if (
-                                    item.servicetitle.includes('Premium')
-                                  ) {
-                                    imageSource = require('../../../assets/premium.png');
-                                  }
-                                  return imageSource ? (
-                                    <Image
-                                      source={imageSource}
-                                      style={styles.image}
-                                    />
+                                  let tierText = null;
+    if (item.servicetitle.includes('Essential')) {
+      tierText = 'Essential';
+    } else if (item.servicetitle.includes('Standard')) {
+      tierText = 'Standard';
+    } else if (item.servicetitle.includes('Premium')) {
+      tierText = 'Premium';
+    }
+
+    // Render Text if a tier was found, otherwise render nothing
+    return tierText ? (
+      <Text style={styles.someTextStyle}>{tierText}</Text>
                                   ) : (
                                     <View />
                                   );
@@ -1255,29 +1176,25 @@ function Repairing({navigation}) {
 
                             <Text
                               style={{
-                                fontSize: 15,
-                                color: 'black',
+                                fontSize: 18,
+                                color: '#343434',
                                 fontFamily: 'Poppins-Bold',
-                                marginTop: 15,
+                                marginTop: 5,
                               }}>
                               {item.serviceName}
                             </Text>
-                            {item.servicebelow ? (
-                              <Text style={styles.sbelow}>
-                                {item.servicebelow}
-                              </Text>
-                            ) : null}
+                            
 
-                            <View style={{flexDirection: 'row', marginTop: 5}}>
-                              <Entypo name="star" color="gold" size={16} />
+                            <View style={{flexDirection: 'row', marginTop: 0}}>
+                              <Entypo name="star" color="#36454F" size={16} />
                               <Text
                                 style={{
                                   fontSize: 13,
                                   marginLeft: 5,
-                                  color: 'black',
+                                  color: '#36454F',
                                   fontFamily: 'Poppins-Medium',
                                 }}>
-                                4.9 (328.8k)
+                                4.9 (328.8k reviews) 
                               </Text>
                             </View>
 
@@ -1293,7 +1210,7 @@ function Repairing({navigation}) {
                                     fontFamily: 'Poppins-Medium',
                                     fontSize: 15,
                                   }}>
-                                  Start price
+                                 
                                 </Text>
                                 <Text style={styles.originalPrice}>
                                   ₹
@@ -1307,7 +1224,7 @@ function Repairing({navigation}) {
                                 <Text
                                   style={{
                                     color: 'black',
-                                    fontSize: 15,
+                                    fontSize: 18,
                                     fontWeight: 'bold',
                                   }}>
                                   ₹
@@ -1329,7 +1246,7 @@ function Repairing({navigation}) {
         fontFamily: 'Poppins-Regular',
         
       }}>
-        (2 Bathrooms)
+        (899 for 2 Bathrooms)
       </Text>
     )}
                               
@@ -1365,80 +1282,88 @@ function Repairing({navigation}) {
                                   textAlign: 'center',
                                   fontSize: cdata?.category === 'Painting' ? 12 : 14,
                                   width: 80,
-                                  color: 'white',
+                                  color: '#1434A4',
                                   fontFamily: 'Poppins-Bold',
-                                  backgroundColor: 'darkred',
+                                  backgroundColor: 'white',
                                   borderRadius: 8,
+                                  borderColor: '#1434A4',
+                                  borderWidth: 1,
                                   padding: 3,
                                   marginTop: -10,
                                 }}>
                                 {cdata?.category === 'Painting'
-                                  ? 'Book Free Inspection'
-                                  : 'Book Now'}
+                                  ? 'Free Inspection'
+                                  : 'Add'}
                               </Text>
                             </TouchableOpacity>
                           </View>
                         </View>
                         <View style={{width: '100%', marginTop: 7}}>
-                          {item.serviceDesc?.map((desc, idx) => {
-                            return (
-                              <View
-                                key={idx}
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'flex-start',
-                                  marginBottom:
-                                    idx === item.serviceDesc.length - 1 ? 0 : 3,
-                                }}>
-                                <View
-                                  style={{
-                                    width: 6,
-                                    height: 6,
-                                    backgroundColor: 'grey',
-                                    borderRadius: 5,
-                                    marginRight: 6,
-                                    marginTop: 5,
-                                  }}
-                                />
-                                <Text
-                                  style={{
-                                    fontSize: 12,
-                                    color: 'black',
-                                    fontFamily: 'Poppins-Regular',
-                                  }}
-                                  numberOfLines={4}
-                                  ellipsizeMode="tail">
-                                  {desc?.text}
-                                </Text>
-                              </View>
-                            );
-                          })}
+                          {item.serviceDesc?.slice(0, 2).map((desc, idx) => {
+  return (
+    <View
+      key={idx}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom:
+          idx === item.serviceDesc.length - 1 ? 0 : 3,
+      }}>
+      <View
+        style={{
+          width: 6,
+          height: 6,
+          backgroundColor: 'grey',
+          borderRadius: 5,
+          marginRight: 6,
+          marginTop: 5,
+        }}
+      />
+      <Text
+        style={{
+          fontSize: 12,
+          color: 'black',
+          fontFamily: 'Poppins-Regular',
+        }}
+        numberOfLines={4}
+        ellipsizeMode="tail">
+        {desc?.text}
+      </Text>
+    </View>
+  );
+})}
+
                         </View>
                         <View
                           style={{
                             flexDirection: 'row',
                             justifyContent: 'space-between',
-                            marginTop: 10,
+                            marginTop: 5,
                           }}>
                           <TouchableOpacity
-                            onPress={() => {
-                                if (cdata?.category === 'Painting') {
-                                    setSelectedItemForEnquiry(item);
-                                    setEnquiryModalVisible(true);
-                                } else {
-                                    handleViewDetails(item);
-                                }
-                            }}
-                            >
-                            <Image
-                              source={require('../../../assets/view_price.png')}
-                              style={{
-                                width: 100,
-                                height: 30,
-                                marginTop: 16,
-                              }}
-                            />
-                          </TouchableOpacity>
+  onPress={() => {
+    if (cdata?.category === 'Painting') {
+      setSelectedItemForEnquiry(item);
+      setEnquiryModalVisible(true);
+    } else {
+      handleViewDetails(item);
+    }
+  }}
+  style={{ marginTop: 0 }}
+>
+  <Text
+    style={{
+      fontSize: 16,
+      color: '#1434A4',
+      marginBottom: 20,
+      textDecorationStyle: 'dashed',
+      fontWeight: '600',
+    }}
+  >
+    View Details
+  </Text>
+</TouchableOpacity>
+
 
                           {cdata?.category === 'Appliance Service' ? (
                             <Shimmer
@@ -1449,11 +1374,12 @@ function Repairing({navigation}) {
                                 onPress={() => setshowratecard(true)}>
                                 <Text
                                   style={{
-                                    color: '#3993c1',
-                                    fontSize: 14,
+                                    color: '#1434A4',
+                                    fontSize: 16,
                                     fontFamily: 'Poppins-Medium',
-                                    marginTop: 16,
-                                    textDecorationLine: 'underline',
+                                    marginTop: 0,
+                                    paddingBottom: 120,
+                                    
                                   }}>
                                   Spare Parts RateCard
                                 </Text>
@@ -1750,7 +1676,7 @@ function Repairing({navigation}) {
               <View
                 style={{
                   flexDirection: 'row',
-                  backgroundColor: 'green',
+                  backgroundColor: '#00A36C',
                   padding: 8,
                   marginTop: 5,
                   alignSelf: 'center',
@@ -1769,7 +1695,7 @@ function Repairing({navigation}) {
                       fontFamily: 'Poppins-Medium',
                     }}
                   />
-                  <Text style={{color: 'white', fontFamily: 'Poppins-Bold'}}>
+                  <Text style={{color: 'white', fontFamily: 'Roboto-Bold'}}>
                     Congratulations!
                   </Text>
                 </View>
@@ -1786,7 +1712,7 @@ function Repairing({navigation}) {
                   style={{
                     color: 'white',
                     marginLeft: 4,
-                    fontFamily: 'Poppins-Bold',
+                    fontFamily: 'Roboto-Bold',
                   }}>
                   {' '}
                   saved so far!
@@ -1804,13 +1730,13 @@ function Repairing({navigation}) {
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                   }}
-                  onPress={() => navigation.navigate('cart')}>
-                  <View style={{flexDirection: 'row', paddingTop: 10}}>
+                  onPress={() => navigation.navigate('cartbook')}>
+                  <View style={{flexDirection: 'row', paddingTop: 10,marginLeft: 10}}>
                     <Text
                       style={{
                         color: 'black',
                         fontSize: 16,
-                        fontFamily: 'Poppins-Bold',
+                        fontFamily: 'Roboto-Bold',
                       }}>
                       Total
                     </Text>
@@ -1818,7 +1744,7 @@ function Repairing({navigation}) {
                       style={{
                         color: 'black',
                         fontSize: 16,
-                        fontFamily: 'Poppins-Bold',
+                        fontFamily: 'Roboto-Bold',
                       }}>
                       {' '}
                       {'  '}
@@ -1830,12 +1756,13 @@ function Repairing({navigation}) {
                   <Text
                     style={{
                       color: 'white',
-                      fontFamily: 'Poppins-Bold',
-                      backgroundColor: 'purple',
-                      padding: 10,
-                      paddingLeft: 40,
-                      paddingRight: 40,
+                      fontFamily: 'Roboto-Bold',
+                      backgroundColor: '#5D3FD3',
+                      padding: 15,
+                      paddingLeft: 50,
+                      paddingRight: 50,
                       borderRadius: 5,
+                      fontSize: 16,
                     }}>
                     {' '}
                     View Cart
@@ -1856,14 +1783,14 @@ function Repairing({navigation}) {
                 width: '100%',
                 height: '100%',
                 borderRadius: 10,
-                padding: 10,
-                borderWidth: 2,
-                borderColor: 'grey',
+                padding: 15,
+                borderWidth: 1,
+                borderColor: '#DCDCDC',
               }}>
               <TouchableOpacity
                 onPress={closeModalAndReset}
                 style={[styles.textinput, styles.elevation]}>
-                <Feather name="x" color="white" size={20} />
+                <Feather name="x" color="white" size={14} />
               </TouchableOpacity>
 
               {showSelectedPrice && (
@@ -1876,7 +1803,7 @@ function Repairing({navigation}) {
                     bottom: 0,
                     zIndex: 10,
                     borderTopWidth: 1,
-                    borderColor: 'darkred',
+                    borderColor: '#DCDCDC',
                     top: 0,
                   }}>
                   <View style={{flex: 0.7}}>
@@ -1935,21 +1862,22 @@ function Repairing({navigation}) {
                       alignItems: 'center',
                     }}>
                     <View style={{flex: 1}}>
-                      <Text style={{color: 'green', fontSize: 12}}>
+                      <Text style={{color: 'green', fontSize: 12, marginTop: 20, marginLeft: 10}}>
                         {selectedItem?.servicetitle}
                       </Text>
                       <Text
                         style={{
-                          color: 'black',
+                          color: '#36454F',
                           fontFamily: 'Poppins-Bold',
                           fontSize: 20,
+                          marginLeft: 10,
                         }}>
                         {selectedItem?.serviceName}
                       </Text>
                     </View>
                   </View>
                   {selectedItem?.servicebelow && (
-                    <Text style={{color: 'black', fontSize: 12}}>
+                    <Text style={{color: 'black', fontSize: 12, marginLeft: 10 }}>
                       {selectedItem?.servicebelow}
                     </Text>
                   )}
@@ -1961,28 +1889,25 @@ function Repairing({navigation}) {
                   <View>
                     <Text
                       style={{
-                        color: 'black',
-                        fontFamily: 'Poppins-Medium',
+                        color: '#36454F',
+                        fontFamily: 'Roboto',
                         marginTop: 20,
-                        fontSize: 17,
+                        fontSize: 20,
+                        fontWeight: 'bold',
+                        marginLeft: 10,
                       }}>
                       Service Description
                     </Text>
-                    <View style={{padding: 10}}>
+                    <View style={{padding: 10, marginTop: -8}}>
                       {selectedItem?.serviceDesc?.map((i, index) => (
                         <View key={index} style={{flexDirection: 'row'}}>
-                          <Image
-                            source={{
-                              uri: `https://api.vijayhomesuperadmin.in/service/1703878308605_581a2c33110a68702c1aab5461852c3d.jpg`,
-                            }}
-                            style={{width: 16, height: 16, marginTop: 7}}
-                          />
                           <Text
                             style={{
                               flexWrap: 'wrap',
-                              marginLeft: 5,
-                              fontSize: 15,
+                              marginLeft: 0,
+                              fontSize: 14,
                               color: 'grey',
+                              fontFamily: 'Roboto',
                             }}>
                             {i.text}
                           </Text>
@@ -1994,94 +1919,103 @@ function Repairing({navigation}) {
                     i => i.pricecity === savecity,
                   ).length > 0 && (
                     <View style={styles.modalPlansContainerOuter}>
-                      <Text style={styles.modalSectionTitle}>Choose Plan</Text>
-                      <View style={styles.modalPlansContainer}>
-                        {selectedItem?.morepriceData
-                          ?.filter(i => i.pricecity === savecity)
-                          .sort((a, b) => parseFloat(a.pPrice) - parseFloat(b.pPrice))
-                          .map((plan, index) => (
-                            <View
-                              style={styles.modalPlanItem}
-                              key={plan._id || index}>
-                              {/* --- START: UNIFORM LAYOUT FIX --- */}
-                              <View style={{alignItems: 'center'}}>
-                                <Text style={styles.modalPlanName}>
-                                  {plan.pName}
-                                </Text>
-                                <View
-                                  style={{
-                                    flexDirection: 'row',
-                                    justifyContent: 'center',
-                                    alignItems: 'baseline',
-                                  }}>
-                                  <Text style={styles.modalPlanOriginalPrice}>
-                                    ₹{plan.pPrice}
-                                  </Text>
-                                  <Text style={styles.modalPlanOfferPrice}>
-                                    {' '}
-                                    ₹{plan.pofferprice}
-                                  </Text>
-                                </View>
-                                <Text style={styles.modalPlanDiscount}>
-                                  {(
-                                    ((plan.pPrice - plan.pofferprice) /
-                                      plan.pPrice) *
-                                    100
-                                  ).toFixed(0)}
-                                  % off
-                                </Text>
-                                {plan?.pservices && (
-                                  <Text
-                                    style={styles.modalPlanServices}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail">
-                                    Services - {plan.pservices}
-                                  </Text>
-                                )}
-                              </View>
-
-                              {isItemInCart(plan._id) ? (
-                                <View style={styles.addedToCartContainerModal}>
-                                  <TouchableOpacity
-                                    onPress={() => {
-                                      dispatch(deleteMyCartItem(plan._id));
-                                    }}>
-                                    <AntDesign
-                                      name="minuscircleo"
-                                      size={22}
-                                      color="white"
-                                    />
-                                  </TouchableOpacity>
-                                  <Text style={styles.cartQuantityTextModal}>
-                                    {getItemQuantityById(plan._id)}
-                                  </Text>
-                                  <TouchableOpacity
-                                    onPress={() =>
-                                      handleItemClick1(plan, index)
-                                    }>
-                                    <AntDesign
-                                      name="pluscircleo"
-                                      size={22}
-                                      color="white"
-                                    />
-                                  </TouchableOpacity>
-                                </View>
-                              ) : (
-                                <TouchableOpacity
-                                  onPress={() => handleItemClick1(plan, index)}
-                                  style={styles.modalBookNowButtonPlan}>
-                                  <Text
-                                    style={
-                                      styles.modalBookNowButtonTextPlan
-                                    }>
-                                    Book Now
-                                  </Text>
-                                </TouchableOpacity>
-                              )}
-                              {/* --- END: UNIFORM LAYOUT FIX --- */}
-                            </View>
-                          ))}
-                      </View>
+                      <Text style={styles.modalSectionTitle}> Choose Plan </Text>
+                                        <View style={{width: '100%'}}>
+                                          {selectedItem?.morepriceData
+                                            ?.filter(i => i.pricecity === savecity)
+                                            .sort((a, b) => parseFloat(a.pPrice) - parseFloat(b.pPrice))
+                                            .map((plan, index) => (
+                                              <View
+                                                style={{
+                                                  flexDirection: 'row',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'space-between',
+                                                  backgroundColor: '#fff',
+                                                  borderRadius: 8,
+                                                  marginBottom: 12,
+                                                  padding: 14,
+                                                  borderWidth: 1,
+                                                  borderColor: '#eee',
+                                                }}
+                                                key={plan._id || index}
+                                              >
+                                                <View style={{flex: 1}}>
+                                                  <Text style={{fontFamily: 'Roboto',fontWeight: 'bold', fontSize: 16, color: '#343434'}}>{plan.pName}</Text>
+                                                  <View style={{flexDirection: 'row', alignItems: 'baseline', marginTop: 2}}>
+                                                    <Text style={{textDecorationLine: 'line-through', color: '#888', fontSize: 14, fontFamily: 'Roboto-Medium'}}>
+                                                      ₹{plan.pPrice}
+                                                    </Text>
+                                                    <Text style={{color: '#0047AB', fontSize: 16, fontFamily: 'Roboto-Bold', marginLeft: 8}}>
+                                                      ₹{plan.pofferprice}
+                                                    </Text>
+                                                  </View>
+                                                  <Text style={{color: '#008000', fontSize: 13, fontFamily: 'Roboto-Medium', marginTop: 2}}>
+                                                    {(
+                                                      ((plan.pPrice - plan.pofferprice) /
+                                                        plan.pPrice) *
+                                                      100
+                                                    ).toFixed(0)}% off
+                                                  </Text>
+                                                  {plan?.pservices && (
+                                                    <Text style={{color: '#555', fontSize: 13, fontFamily: 'Roboto-Medium', marginTop: 2}}>
+                                                      Services - {plan.pservices}
+                                                    </Text>
+                                                  )}
+                                                </View>
+                                                {isItemInCart(plan._id) ? (
+                                                  <View style={{
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    backgroundColor: 'white',
+                                                    borderRadius: 5,
+                                                    padding: 4,
+                                                    borderWidth: 1,
+                                                    borderColor: '#0047AB',
+                                                    shadowColor: '#0047AB',
+                                                    shadowOffset: { width: 0, height: 2 },
+                                                    shadowOpacity: 0.3,
+                                                    shadowRadius: 4,
+                                                    elevation: 4,
+                                                    paddingHorizontal: 4,
+                                                   
+                                                    marginRight: 18
+                                                  }}>
+                                                    <TouchableOpacity
+                                                      onPress={() => {
+                                                        dispatch(deleteMyCartItem(plan._id));
+                                                      }}>
+                                                      <AntDesign
+                                                        name="minus"
+                                                        size={14}
+                                                        color="#0047AB"
+                                                        marginLeft={4}
+                                                      />
+                                                    </TouchableOpacity>
+                                                    <Text style={{color: '#0047AB', fontFamily: 'Roboto-Bold', fontSize: 16, paddingLeft: 12, paddingRight: 12}}>
+                                                      {getItemQuantityById(plan._id)}
+                                                    </Text>
+                                                    <TouchableOpacity
+                                                      onPress={() => handleItemClick1(plan, index)}>
+                                                      <AntDesign
+                                                        name="plus"
+                                                        size={14}
+                                                        color="#0047AB"
+                                                        marginRight={4}
+                                                      />
+                                                    </TouchableOpacity>
+                                                  </View>
+                                                ) : (
+                                                  <TouchableOpacity
+                                                    onPress={() => handleItemClick1(plan, index)}
+                                                    style={{backgroundColor: 'white', borderRadius: 5, paddingVertical: 8, paddingHorizontal: 18, marginLeft: 10}}>
+                                                    <Text style={{color: '#0047AB', fontFamily: 'Roboto-Bold', fontSize: 15, borderColor: '#0047AB', borderWidth: 1, padding: 4, paddingHorizontal: 20, borderRadius: 5}}>
+                                                      Book
+                                                    </Text>
+                                                  </TouchableOpacity>
+                                                )}
+                                              </View>
+                                            ))}
+                                        </View>
                     </View>
                   )}
                   <View>
@@ -2109,7 +2043,7 @@ function Repairing({navigation}) {
                               marginLeft: 5,
                               fontSize: 15,
                               marginTop: 3,
-                              color: 'black',
+                              color: 'grey',
                             }}>
                             {i.text}
                           </Text>
@@ -2198,19 +2132,21 @@ function Repairing({navigation}) {
                   style={{
                     position: 'absolute',
                     bottom: 0,
-                    width: '106%',
-                    marginLeft: '-3%',
+                    width: '111%',
+                    
                   }}>
                   <View
                     style={{
                       flexDirection: 'row',
-                      backgroundColor: 'green',
+                      backgroundColor: '#00A36C',
                       padding: 8,
                       marginTop: 5,
                       alignSelf: 'center',
                       justifyContent: 'center',
                       textAlign: 'center',
                       width: '100%',
+                      marginRight: 2
+
                     }}>
                     <View style={{flexDirection: 'row'}}>
                       <MaterialIcons
@@ -2220,10 +2156,10 @@ function Repairing({navigation}) {
                         style={{
                           marginTop: 3,
                           paddingRight: 3,
-                          fontFamily: 'Poppins-Medium',
+                          fontFamily: 'Roboto-Medium',
                         }}
                       />
-                      <Text style={{color: 'white', fontFamily: 'Poppins-Bold'}}>
+                      <Text style={{color: 'white', fontFamily: 'Roboto-Bold'}}>
                         Congratulations!
                       </Text>
                     </View>
@@ -2260,27 +2196,29 @@ function Repairing({navigation}) {
                       }}
                       onPress={() => {
                         setShowModal(false);
-                        navigation.navigate('cart');
+                        navigation.navigate('cartbook');
                       }}>
                       <View style={{flexDirection: 'row', paddingTop: 10}}>
-                        <Text style={{color: 'black', fontFamily: 'Poppins-Bold'}}>
+                        <Text style={{color: 'black', fontFamily: 'Roboto-Bold',marginLeft: 10, fontSize: 16, marginRight: 5}}>
                           Total
                         </Text>
-                        <Text style={{color: 'black'}}>
+                        <Text style={{color: 'black', fontSize: 16}}>
                           {' '}
-                          <FontAwesome name="rupee" size={13} color="black" />{' '}
+                          <FontAwesome name="rupee" size={14} color="black" />{' '}
                           {Carttotal.toFixed(2)}
                         </Text>
                       </View>
                       <Text
                         style={{
                           color: 'white',
-                          fontFamily: 'Poppins-Bold',
-                          backgroundColor: 'purple',
+                          fontFamily: 'Roboto',
+                          backgroundColor: '#5D3FD3',
                           padding: 10,
                           paddingLeft: 40,
                           paddingRight: 40,
                           borderRadius: 5,
+                          fontWeight: 'bold'
+
                         }}>
                         View Cart
                       </Text>
@@ -2509,47 +2447,62 @@ function Repairing({navigation}) {
             onBackButtonPress={() => setEnquiryModalVisible(false)}
             style={{justifyContent: 'center', alignItems: 'center'}}
             avoidKeyboard>
-            <View style={styles.enquiryModalContainer}>
+            <View style={[styles.enquiryModalContainer, {
+              shadowColor: 'black',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.18,
+              shadowRadius: 12,
+              elevation: 8,
+              borderRadius: 18,
+              padding: 30,
+              backgroundColor: '#fff',
+            }]}> 
               <TouchableOpacity
-                style={styles.closeButton}
+                style={[styles.closeButton, {backgroundColor: '#F0F4FF', borderRadius: 20}]}
                 onPress={() => setEnquiryModalVisible(false)}>
-                <AntDesign name="close" size={24} color="grey" />
+                <AntDesign name="close" size={14} color="black" padding="10" />
               </TouchableOpacity>
-              <Text style={styles.enquiryModalTitle}>
-                Get a Free Inspection
-              </Text>
-              <Text style={styles.enquiryModalSubtitle}>
-                Please provide your details below. Our team will get in touch
-                with you.
-              </Text>
-              <ScrollView 
-                style={{width: '100%'}} 
-                keyboardShouldPersistTaps="handled"
-              >
-                <TextInput
-                  style={styles.enquiryInput}
-                  placeholder="Enter Your Name"
-                  placeholderTextColor="#888"
-                  value={enquiryName}
-                  onChangeText={setEnquiryName}
-                />
-                <TextInput
-                  style={styles.enquiryInput}
-                  placeholder="Enter Your 10-digit Phone Number"
-                  placeholderTextColor="#888"
-                  value={enquiryPhone}
-                  onChangeText={setEnquiryPhone}
-                  keyboardType="numeric"
-                  maxLength={10}
-                />
+              <Text style={[styles.enquiryModalTitle, {color: 'black', fontSize: 22, marginTop: 10}]}>Get a Free Inspection</Text>
+              <Text style={[styles.enquiryModalSubtitle, {fontSize: 15, marginBottom: 24}]}>Please provide your details below. Our team will get in touch with you.</Text>
+              <ScrollView style={{width: '100%'}} keyboardShouldPersistTaps="handled">
+                <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F4FF', borderRadius: 8, marginBottom: 16, paddingHorizontal: 10, width: 250}}>
+                  <AntDesign name="user" size={20} color="grey" style={{marginRight: 8}} />
+                  <TextInput
+                    style={[styles.enquiryInput, {
+                      borderWidth: 0,
+                      backgroundColor: 'transparent',
+                      flex: 1,
+                      fontSize: 16,
+                      textAlignVertical: 'center',
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                    }]}
+                    placeholder="Enter Your Name"
+                    placeholderTextColor="#888"
+                    value={enquiryName}
+                    onChangeText={setEnquiryName}
+                  />
+                </View>
+                <View style={{flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F4FF', borderRadius: 8, marginBottom: 16, paddingHorizontal: 10}}>
+                  <AntDesign name="phone" size={20} color="grey" style={{marginRight: 8}} />
+                  <TextInput
+                    style={[styles.enquiryInput, {borderWidth: 0, backgroundColor: 'transparent', flex: 1,fontSize: 16, alignItems: 'center'}]}
+                    placeholder="Enter Your 10-digit Phone Number"
+                    placeholderTextColor="#888"
+                    value={enquiryPhone}
+                    onChangeText={setEnquiryPhone}
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
+                </View>
                 <TouchableOpacity
-                  style={styles.submitButton}
+                  style={[styles.submitButton, {backgroundColor: 'black', borderRadius: 8, marginTop: 10, shadowColor: '#0047AB', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3}]}
                   onPress={handlePaintingEnquirySubmit}
                   disabled={isSubmitting}>
                   {isSubmitting ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <Text style={styles.submitButtonText}>Submit Enquiry</Text>
+                    <Text style={[styles.submitButtonText, {fontFamily: 'Roboto-Bold', fontSize: 17}]}>Submit Enquiry</Text>
                   )}
                 </TouchableOpacity>
               </ScrollView>
@@ -2579,64 +2532,93 @@ function Repairing({navigation}) {
                 contentContainerStyle={styles.bottomSheetScrollContent}>
                 <View style={{marginHorizontal: 10, marginTop: 10}}>
                   {pricesdata.length > 0 ? (
-                    <View style={styles.modalPlansContainer}>
+                    <View style={{width: '100%'}}>
                       {pricesdata
-                        .slice() 
+                        .slice()
                         .sort((a, b) => parseFloat(a.pPrice) - parseFloat(b.pPrice))
                         .map((item, index) => (
                           <View
-                            style={styles.modalPlanItem}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              backgroundColor: '#fff',
+                              borderRadius: 8,
+                              marginBottom: 10,
+                              padding: 12,
+                              borderWidth: 1,
+                              borderColor: '#eee',
+                            }}
                             key={item._id || index}>
-                            <Text style={styles.modalPlanName}>{item.pName}</Text>
-                            <View
-                              style={{
-                                flexDirection: 'row',
-                                justifyContent: 'center',
-                                alignItems: 'baseline',
-                              }}>
-                              <Text style={styles.modalPlanOriginalPrice}>
-                                ₹{item.pPrice}
-                              </Text>
-                              <Text style={styles.modalPlanOfferPrice}>
-                                {' '}
-                                ₹{item.pofferprice}
-                              </Text>
+                            <View style={{flex: 1}}>
+                              <Text style={{fontFamily: 'Poppins-Bold', fontSize: 16, color: '#343434'}}>{item.pName}</Text>
+                              <View style={{flexDirection: 'row', alignItems: 'baseline', marginTop: 0}}>
+                                <Text style={{textDecorationLine: 'line-through', color: '#888', fontSize: 14, fontFamily: 'Roboto-Medium'}}>
+                                  ₹{item.pPrice}
+                                </Text>
+                                <Text style={{color: '#0047AB', fontSize: 16, fontFamily: 'Roboto-Bold', marginLeft: 8}}>
+                                  ₹{item.pofferprice}
+                                </Text>
+                              </View>
+                              {item?.pservices && (
+                                <Text style={{color: '#555', fontSize: 13, fontFamily: 'Roboto-Medium', marginTop: 2}}>
+                                  Services - {item.pservices}
+                                </Text>
+                              )}
                             </View>
-                            {item?.pservices && (
-                              <Text style={styles.modalPlanServices}>
-                                Services - {item.pservices}
-                              </Text>
-                            )}
                             {isItemInCart(item._id) ? (
-                              <View style={styles.addedToCartContainerModal}>
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: 'white',
+                                borderRadius: 5,
+                                padding: 4,
+                                borderWidth: 1,
+                                borderColor: '#0047AB',
+                                shadowColor: '#0047AB',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 4,
+                                elevation: 4,
+                                paddingHorizontal: 4,
+                                marginRight: 20,
+                              }}>
                                 <TouchableOpacity
                                   onPress={() => {
                                     dispatch(deleteMyCartItem(item._id));
                                   }}>
                                   <AntDesign
-                                    name="minuscircleo"
-                                    size={22}
-                                    color="white"
+                                    name="minus"
+                                    size={12}
+                                    color="#0047AB"
+                                    paddingLeft={4}
                                   />
                                 </TouchableOpacity>
-                                <Text style={styles.cartQuantityTextModal}>
+                                <Text style={{
+                                  color: '#0047AB',
+                                  fontFamily: 'Roboto-Bold',
+                                  fontSize: 16,
+                                  paddingLeft: 12,
+                                  paddingRight: 12,
+                                }}>
                                   {getItemQuantityById(item._id)}
                                 </Text>
                                 <TouchableOpacity
                                   onPress={() => handleItemClick(item, index)}>
                                   <AntDesign
-                                    name="pluscircleo"
-                                    size={22}
-                                    color="white"
+                                    name="plus"
+                                    size={12}
+                                    color="#0047AB"
+                                    paddingRight={4}
                                   />
                                 </TouchableOpacity>
                               </View>
                             ) : (
                               <TouchableOpacity
                                 onPress={() => handleItemClick(item, index)}
-                                style={styles.modalBookNowButtonPlan}>
-                                <Text style={styles.modalBookNowButtonTextPlan}>
-                                  Book Now
+                                style={{backgroundColor: 'white', borderRadius: 5, paddingVertical: 8, paddingHorizontal: 18, marginLeft: 10}}>
+                                <Text style={{color: '#0047AB', fontFamily: 'Roboto-Bold', fontSize: 15, borderColor: '#0047AB', borderWidth: 1, padding: 4, paddingHorizontal: 20, borderRadius: 5}}>
+                                  Book
                                 </Text>
                               </TouchableOpacity>
                             )}
@@ -2667,7 +2649,7 @@ function Repairing({navigation}) {
                   <View
                     style={{
                       flexDirection: 'row',
-                      backgroundColor: 'green',
+                      backgroundColor: '#00A36C',
                       padding: 8,
                       marginTop: 5,
                       alignSelf: 'center',
@@ -2681,12 +2663,12 @@ function Repairing({navigation}) {
                         size={15}
                         style={{marginTop: 3, paddingRight: 5}}
                       />
-                      <Text style={{color: 'white', fontFamily: 'Poppins'}}>
+                      <Text style={{color: 'white', fontFamily: 'Roboto'}}>
                         Congratulations!
                       </Text>
                     </View>
                     <Text
-                      style={{color: 'white', marginLeft: 10, fontFamily: 'Poppins'}}>
+                      style={{color: 'white', marginLeft: 10, fontFamily: 'Roboto'}}>
                       <FontAwesome name="rupee" size={12} color="white" />{' '}
                       {CartSavedtotal.toFixed(2)} saved so far!
                     </Text>
@@ -2701,14 +2683,14 @@ function Repairing({navigation}) {
                       justifyContent: 'space-between',
                     }}
                     onPress={() => {
-                      navigation.navigate('cart');
+                      navigation.navigate('cartbook');
                       setShowModal1(false);
                     }}>
-                    <View style={{flexDirection: 'row', paddingTop: 10}}>
+                    <View style={{flexDirection: 'row', paddingTop: 10,marginLeft: 10}}>
                       <Text
                         style={{
                           color: 'black',
-                          fontFamily: 'Poppins-Bold',
+                          fontFamily: 'Roboto-Bold',
                           fontSize: 16,
                           marginRight: 5,
                         }}>
@@ -2716,9 +2698,9 @@ function Repairing({navigation}) {
                       </Text>
                       <Text style={{color: 'black', fontSize: 16}}>
                         {' '}
-                        <FontAwesome name="rupee" size={13} color="black" />{' '}
+                        <FontAwesome name="rupee" size={16} color="black" />{' '}
                         <Text
-                          style={{fontFamily: 'Poppins-Bold', fontSize: 16}}>
+                          style={{fontFamily: 'Roboto-Bold', fontSize: 16}}>
                           {Carttotal.toFixed(2)}
                         </Text>
                       </Text>
@@ -2726,12 +2708,13 @@ function Repairing({navigation}) {
                     <Text
                       style={{
                         color: 'white',
-                        fontFamily: 'Poppins-Bold',
-                        backgroundColor: 'purple',
-                        padding: 10,
-                        paddingLeft: 40,
-                        paddingRight: 40,
+                        fontFamily: 'Roboto-Bold',
+                        backgroundColor: '#5D3FD3',
+                        padding: 15,
+                        paddingLeft: 50,
+                        paddingRight: 50,
                         borderRadius: 5,
+                        fontSize: 16,
                       }}>
                       View Cart
                     </Text>
@@ -2797,7 +2780,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
     textDecorationLine: 'line-through',
     marginRight: 5,
-    marginLeft: 8,
+    marginLeft: 4,
+    fontSize: 18
   },
   centeredView: {
     flex: 1,
@@ -2863,7 +2847,7 @@ const styles = StyleSheet.create({
   },
   textinput: {
     borderRadius: 50,
-    backgroundColor: 'darkred',
+    backgroundColor: '#36454F',
     padding: 5,
     position: 'absolute',
     right: 15,
@@ -2881,7 +2865,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   elevation: {
-    elevation: 15,
+    elevation: 10,
   },
   acimg: {
     height: 200,
@@ -2933,7 +2917,7 @@ const styles = StyleSheet.create({
   sbelow: {
     fontFamily: 'Poppins-Medium',
     fontSize: 12,
-    color: 'green',
+    color: '#191970',
   },
   tb: {
     fontSize: 16,
@@ -3017,9 +3001,10 @@ const styles = StyleSheet.create({
   },
   modalPlansContainerOuter: {
     marginHorizontal: 15,
+    marginTop: 10,
   },
   modalSectionTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontFamily: 'Poppins-Medium',
     color: 'black',
     marginBottom: 10,
@@ -3181,9 +3166,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 15,
-    marginBottom: 15,
+   
     fontFamily: 'Poppins-Regular',
     color: 'black',
+    alignItems: 'center',
   },
   paintingFooter: {
     position: 'absolute',
@@ -3197,7 +3183,7 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
   },
   paintingFooterButton: {
-    backgroundColor: 'darkred',
+    backgroundColor: '#5D3FD3',
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -3206,8 +3192,24 @@ const styles = StyleSheet.create({
   paintingFooterButtonText: {
     color: 'white',
     fontSize: 16,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'Roboto-Bold',
+    fontWeight: 'bold',
   },
+
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: 16,
+  },
+
+   someTextStyle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#6495ED',
+    },
 });
 
 export default Repairing;

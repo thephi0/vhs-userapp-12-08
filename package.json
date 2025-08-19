@@ -33,6 +33,7 @@
     "react-native-android-location-services-dialog-box": "^2.8.2",
     "react-native-animatable": "^1.4.0",
     "react-native-calendars": "^1.1306.0",
+    "react-native-dash": "^0.0.11",
     "react-native-date-picker": "^5.0.4",
     "react-native-device-info": "^11.1.0",
     "react-native-easy-content-loader": "^0.3.2",

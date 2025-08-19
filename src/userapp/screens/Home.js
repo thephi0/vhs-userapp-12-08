@@ -94,17 +94,16 @@ function Home({navigation}) {
   const [SelectedCategory, setSelectedCategory] = useState('');
 
   const [secondsdata, setsecondsdata] = useState([]);
-  const [visible, setVisible] = useState(false);
 
   const [isModalVisible, setModalVisible] = useState(false);
-  const [isOfferModalVisible, setOfferModalVisible] = useState(false); // <-- NEW STATE
+  const [isOfferModalVisible, setOfferModalVisible] = useState(false);
 
   const [appupdateModalVisible, setappupdateModalVisible] = useState(false);
   const [refresh, setRefresh] = useState(false);
   const [citydata, setcitydata] = useState([]);
   const [sliderImages, setSliderImages] = useState([]);
-  const isFocused = useIsFocused(); // Returns true if the screen is focused, false otherwise.
-  const [videoPaused, setVideoPaused] = useState(!isFocused); // Initially pause if not focused
+  const isFocused = useIsFocused();
+  const [videoPaused, setVideoPaused] = useState(!isFocused);
 
   const [version, setVersion] = useState('');
 
@@ -113,13 +112,20 @@ function Home({navigation}) {
   useEffect(() => {
     AsyncStorage.getItem('savecity').then(value => {
       if (value) {
-        // If a city is already saved, hide the modal
         setsavecity(value);
         setCityModalVisible(false);
       } else {
-        // If no city is saved, show the modal
         setCityModalVisible(true);
       }
+    });
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.getItem('city').then(value => {
+      setaddress(value);
+    });
+    AsyncStorage.getItem('savecity').then(value => {
+      setsavecity(value);
     });
   }, []);
 
@@ -127,28 +133,126 @@ function Home({navigation}) {
     let res = await axios.get(
       'https://api.vijayhomeservicebengaluru.in/api/getversions',
     );
-    if ((res.status = 200)) {
+    if (res.status === 200) {
       const version = res.data?.versions;
-
       setVersion(version[0]?.version);
     }
   };
-
-  const handleUpdatePress = () => {
-    Linking.openURL('https://play.google.com/store/apps/details?id=com.vhs1');
-  };
-
-  useEffect(() => {
-    spotlightbanner();
-  }, []);
 
   const spotlightbanner = async () => {
     let res = await axios.get(
       'https://api.vijayhomesuperadmin.in/api/userapp/getallbanner',
     );
-    if ((res.status = 200)) {
+    if (res.status === 200) {
       setSliderImages(res.data?.banner);
     }
+  };
+
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(
+        'https://api.vijayhomesuperadmin.in/api/userapp/getallbanner',
+      );
+      if (response.data && response.data.banner) {
+        setBannerdata(response.data.banner);
+      } else {
+        console.error("API response does not contain 'banner' property");
+      }
+    } catch (error) {
+      console.error('No internet');
+    }
+  };
+
+  const getbannerimg = async () => {
+    let res = await axios.get(
+      'https://api.vijayhomesuperadmin.in/api/userapp/getallspotlightbanner',
+    );
+    if (res.status === 200) {
+      setspotlightdata(res.data?.spotlightbanner);
+    }
+  };
+
+  const getcategory = async () => {
+    let res = await axios.get(
+      'https://api.vijayhomesuperadmin.in/api/getcategory',
+    );
+    if (res.status === 200) {
+      setcategorydata(res.data?.category);
+    }
+  };
+
+  const gethomepagetitle = async () => {
+    let res = await axios.get(
+      'https://api.vijayhomesuperadmin.in/api/userapp/gettitle',
+    );
+    if (res.status === 200) {
+      sethomepagetitledata(res.data?.homepagetitle);
+    }
+  };
+
+  const getallsubcategory = async () => {
+    let res = await axios.get(
+      'https://api.vijayhomesuperadmin.in/api/userapp/getappsubcat',
+    );
+    if (res.status === 200) {
+      const subcategories = res.data?.subcategory || [];
+      setsubdata(subcategories);
+      setsdata(subcategories);
+    }
+  };
+
+  const getcity = async () => {
+    let res = await axios.get(
+      'https://api.vijayhomesuperadmin.in/api/master/getcity',
+    );
+    if (res.status === 200) {
+      setcitydata(res.data?.mastercity);
+    }
+  };
+
+  const getservices = async () => {
+    const data = sdata;
+    const filteredData = data.filter(i => {
+      return i.homePagetitle === homepagetitledata[0]?.title;
+    });
+
+    setservicedata(filteredData);
+    setsecondsdata(
+      data.filter(i => i.homePagetitle === homepagetitledata[1]?.title),
+    );
+  };
+
+  useEffect(() => {
+    const fetchHomeScreenData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          getversions(),
+          spotlightbanner(),
+          fetchData(),
+          getcity(),
+          getbannerimg(),
+          getcategory(),
+          getallsubcategory(),
+          gethomepagetitle(),
+        ]);
+      } catch (error) {
+        console.error('Failed to fetch initial home screen data in parallel:', error);
+      } finally {
+        setTimeout(() => setIsLoading(false), 500);
+      }
+    };
+    fetchHomeScreenData();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (homepagetitledata.length > 0 && sdata.length > 0) {
+      getservices();
+    }
+  }, [homepagetitledata, sdata]);
+
+  const handleUpdatePress = () => {
+    Linking.openURL('https://play.google.com/store/apps/details?id=com.vhs1');
   };
 
   const imageSliderData = sliderImages.map(item => ({
@@ -163,23 +267,31 @@ function Home({navigation}) {
     setCityModalVisible(false);
   };
 
-  const toggleModal = () => {
-    setModalVisible(true);
-  };
-
   const close = () => {
     setSelectedCategory('');
+    setpostcategorydata([]);
     setModalVisible(false);
   };
 
-  useEffect(() => {
-    AsyncStorage.getItem('city').then(value => {
-      setaddress(value);
-    });
-    AsyncStorage.getItem('savecity').then(value => {
-      setsavecity(value);
-    });
-  }, []);
+  const handleCategoryPress = async (category) => {
+    setSelectedCategory(category);
+    setModalVisible(true);
+    setpostcategorydata([]);
+
+    try {
+        let res = await axios.post(
+          `https://api.vijayhomesuperadmin.in/api/userapp/postappsubcat/`,
+          { category: category },
+        );
+        if (res.status === 200) {
+          setpostcategorydata(res.data?.subcategory);
+        }
+    } catch (error) {
+        console.error("Error fetching subcategory data on demand: ", error);
+        close();
+        alert("Could not load services. Please try again.");
+    }
+  };
 
   function groupItemsIntoRows(items, itemsPerRow) {
     const rows = [];
@@ -188,189 +300,16 @@ function Home({navigation}) {
     }
     return rows;
   }
-
-  useEffect(() => {
-    try {
-      getcity();
-    } catch (error) {
-      console.error('An error occurred in the second useEffect:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      fetchData();
-    } catch (error) {
-      console.error('An error occurred in the third useEffect:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      getsubcategory();
-    } catch (error) {
-      console.error('An error occurred in the fourth useEffect:', error);
-    }
-  }, [SelectedCategory]);
-
-  useEffect(() => {
-    try {
-      getbannerimg();
-      getcategory();
-      getallsubcategory();
-      gethomepagetitle();
-    } catch (error) {
-      console.error('An error occurred in the fifth useEffect:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      getservices();
-    } catch (error) {
-      console.error('An error occurred in the sixth useEffect:', error);
-    }
-  }, [homepagetitledata]);
-
-  useEffect(() => {
-    try {
-      setInterval(() => {
-        setVisible(!visible);
-      }, 2000);
-    } catch (error) {
-      console.error('An error occurred in the seventh useEffect:', error);
-    }
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const response = await axios.get(
-        'https://api.vijayhomesuperadmin.in/api/userapp/getallbanner',
-      );
-
-      if (response.data && response.data.banner) {
-        setBannerdata(response.data.banner);
-      } else {
-        console.error(
-          "Error fetching images: API response does not contain 'addbanner' property",
-        );
-      }
-    } catch (error) {
-      console.error('No internet');
-    }
-  };
-
-  const getsubcategory = async () => {
-    let res = await axios.post(
-      `https://api.vijayhomesuperadmin.in/api/userapp/postappsubcat/`,
-      {
-        category: SelectedCategory,
-      },
-    );
-
-    if ((res.status = 200)) {
-      setpostcategorydata(res.data?.subcategory);
-    }
-  };
-
-  const getbannerimg = async () => {
-    let res = await axios.get(
-      'https://api.vijayhomesuperadmin.in/api/userapp/getallspotlightbanner',
-    );
-    if ((res.status = 200)) {
-      setspotlightdata(res.data?.spotlightbanner);
-    }
-  };
-
-  const getcategory = async () => {
-    let res = await axios.get(
-      'https://api.vijayhomesuperadmin.in/api/getcategory',
-    );
-    if (res.status === 200) {
-      setcategorydata(res.data?.category);
-    }
-  };
-
-  const getservices = async () => {
-    let res = await axios.get(
-      'https://api.vijayhomesuperadmin.in/api/userapp/getappsubcat',
-    );
-    if (res.status === 200) {
-      const data = res.data?.subcategory;
-      const filteredData = data.filter(i => {
-        const shouldInclude = i.homePagetitle === homepagetitledata[0]?.title;
-
-        return shouldInclude;
-      });
-
-      setsdata(res.data?.subcategory);
-
-      setservicedata(filteredData);
-      setsecondsdata(
-        data.filter(i => i.homePagetitle === homepagetitledata[1]?.title),
-      );
-    }
-  };
-
-  const gethomepagetitle = async () => {
-    let res = await axios.get(
-      'https://api.vijayhomesuperadmin.in/api/userapp/gettitle',
-    );
-    if ((res.status = 200)) {
-      sethomepagetitledata(res.data?.homepagetitle);
-    }
-  };
-
-  const getallsubcategory = async () => {
-    let res = await axios.get(
-      'https://api.vijayhomesuperadmin.in/api/userapp/getappsubcat',
-    );
-    if ((res.status = 200)) {
-      setsubdata(res.data?.subcategory);
-    }
-  };
-
-  const getcity = async () => {
-    let res = await axios.get(
-      'https://api.vijayhomesuperadmin.in/api/master/getcity',
-    );
-    if ((res.status = 200)) {
-      setcitydata(res.data?.mastercity);
-    }
-  };
-
-  const startRefreshTimer = (refreshCallback, interval) => {
-    const timer = setInterval(() => {
-      refreshCallback();
-    }, interval);
-
-    return () => {
-      clearInterval(timer);
-    };
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
-
+  
   const [refreshing, setRefreshing] = React.useState(false);
-
   const onRefresh = React.useCallback(() => {
-    setRefresh(true);
-
-    setTimeout(() => {
-      setRefresh(false);
-    }, 2000);
+    setRefresh(prev => !prev);
   }, []);
 
   useEffect(() => {
     requestCameraPermission();
+    Geocoder.init('AIzaSyBF48uqsKVyp9P2NlDX-heBJksvvT_8Cqk');
+    getCurrentLocation();
   }, []);
 
   const requestCameraPermission = async () => {
@@ -379,8 +318,7 @@ function Home({navigation}) {
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: 'Location Permission Required',
-          message:
-            'Vijay Home Services needs access to your location to provide location-based services.',
+          message: 'Vijay Home Services needs access to your location to provide location-based services.',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
@@ -396,61 +334,45 @@ function Home({navigation}) {
     }
   };
 
+  const [address, setAddress] = useState({address: '', markerCoordinate: {}});
+  const getCurrentLocation = async () => {
+    try {
+      const location = await GetLocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 60000,
+      });
+      const {latitude, longitude} = location;
+      fetchAddress(latitude, longitude);
+    } catch (error) {
+      const {code, message} = error;
+      console.warn(code, message);
+    }
+  };
+
+  const fetchAddress = async (latitude, longitude) => {
+    try {
+      const response = await Geocoder.from(latitude, longitude);
+      const address = response.results[0].formatted_address;
+      const abc = {
+        address: address,
+        markerCoordinate: {latitude: latitude, longitude: longitude},
+      };
+      AsyncStorage.setItem('address', JSON.stringify(abc));
+      AsyncStorage.setItem('locationData', JSON.stringify(abc));
+      setAddress({
+        address: abc,
+        markerCoordinate: {latitude: latitude, longitude: longitude},
+      });
+    } catch (error) {
+      console.error('Error fetching address: ', error);
+    }
+  };
+
   const MyCartItmes = useSelector(state => state.cart);
   const TotalQuantity = MyCartItmes.reduce((accumulator, item) => {
     const quantity = parseInt(item?.qty);
-    if (!isNaN(quantity)) {
-      return accumulator + quantity;
-    } else {
-      return accumulator;
-    }
+    return !isNaN(quantity) ? accumulator + quantity : accumulator;
   }, 0);
-
-  const [address, setAddress] = useState({address: '', markerCoordinate: {}});
-  useEffect(() => {
-    Geocoder.init('AIzaSyBF48uqsKVyp9P2NlDX-heBJksvvT_8Cqk');
-  }, []);
-  useEffect(() => {
-    const getCurrentLocation = async () => {
-      try {
-        const location = await GetLocation.getCurrentPosition({
-          enableHighAccuracy: true,
-          timeout: 60000,
-        });
-
-        const {latitude, longitude} = location;
-
-        fetchAddress(latitude, longitude);
-      } catch (error) {
-        const {code, message} = error;
-        console.warn(code, message);
-      }
-    };
-
-    const fetchAddress = async (latitude, longitude) => {
-      try {
-        const response = await Geocoder.from(latitude, longitude);
-        const address = response.results[0].formatted_address;
-
-        const abc = {
-          address: address,
-          markerCoordinate: {latitude: latitude, longitude: longitude},
-        };
-        AsyncStorage.setItem('address', JSON.stringify(abc));
-        AsyncStorage.setItem('locationData', JSON.stringify(abc));
-
-        console.log('abc', abc);
-        setAddress({
-          address: abc,
-          markerCoordinate: {latitude: latitude, longitude: longitude},
-        });
-      } catch (error) {
-        console.error('Error fetching address: ', error);
-      }
-    };
-
-    getCurrentLocation();
-  }, []);
 
   const {height} = Dimensions.get('window');
 
@@ -478,63 +400,58 @@ function Home({navigation}) {
     21: require('../../../assets/city21.png'),
   };
 
-
-    const specialDealsToExclude = [
+  const specialDealsToExclude = [
     'varalakshmi home cleaning deals',
     'varalakshmi bathroom deals',
-    'varalakshmi kitchen deals'
+    'varalakshmi kitchen deals',
   ];
 
   const filteredSubdata = (subdata || []).filter(
     item => !specialDealsToExclude.includes(item.subcategory?.trim().toLowerCase())
   );
 
-
   const offersData = [
-  {
-    id: 1,
-    title: 'Book Home cleaning',
-    deal: 'Get 5 Seat sofa cleaning FREE',
-    coupon: null,
-    targetSubcategory: 'varalakshmi home cleaning deals'
-  },
-  {
-    id: 2,
-    title: 'Book Bathroom cleaning',
-    deal: 'Get Rs 100 OFF',
-    coupon: null,
-    targetSubcategory: 'varalakshmi bathroom deals'
-  },
-  {
-    id: 3,
-    title: 'Book Kitchen cleaning',
-    deal: 'Get Rs 200 Off',
-    coupon: null,
-    targetSubcategory: 'varalakshmi kitchen deals'
-  },
-];
+    {
+      id: 1,
+      title: 'Book Home cleaning',
+      deal: 'Get 5 Seat sofa cleaning FREE',
+      coupon: null,
+      targetSubcategory: 'varalakshmi home cleaning deals',
+    },
+    {
+      id: 2,
+      title: 'Book Bathroom cleaning',
+      deal: 'Get Rs 100 OFF',
+      coupon: null,
+      targetSubcategory: 'varalakshmi bathroom deals',
+    },
+    {
+      id: 3,
+      title: 'Book Kitchen cleaning',
+      deal: 'Get Rs 200 Off',
+      coupon: null,
+      targetSubcategory: 'varalakshmi kitchen deals',
+    },
+  ];
 
   useEffect(() => {
-    setVideoPaused(!isFocused); // Play when focused, pause when not focused
+    setVideoPaused(!isFocused);
   }, [isFocused]);
 
   return (
     <View style={{flex: 1, backgroundColor: 'white'}}>
-      <StatusBar backgroundColor="darkred" barStyle="light-content" />
+      <StatusBar backgroundColor="grey" barStyle="light-content" />
       <View style={styles.container} key={refresh}>
         <ScrollView
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
           }>
           <View style={styles.container}>
             <View style={{height: 500}}>
               <Image
-                source={require('../../../assets/pest_control1.png')} // Path to your .mp4 file
-                style={styles.backgroundImage} // You can reuse or adapt your backgroundImage style
+                source={require('../../../assets/pest_control1.png')}
+                style={styles.backgroundImage}
               />
-              {/* You can overlay other content here if needed */}
-              {/* e.g., <Text style={styles.overlayText}>Pest Control Services</Text> */}
-
               <View style={styles.overlayContainer}>
                 <WebView
                   source={{uri: ''}}
@@ -548,7 +465,6 @@ function Home({navigation}) {
                   flexDirection: 'row',
                   padding: 15,
                   elevation: 1,
-
                   backgroundColor: 'transparent',
                 }}>
                 <Pressable
@@ -557,7 +473,6 @@ function Home({navigation}) {
                   <View
                     style={{
                       flexDirection: 'row',
-                      // borderWidth: 1,
                       elevation: 3,
                       padding: 5,
                       width: 140,
@@ -596,10 +511,7 @@ function Home({navigation}) {
                       if (TotalQuantity && TotalQuantity > 0) {
                         navigation.navigate('cart');
                       } else {
-                        // Handle the case when TotalQuantity doesn't exist or is 0
-                        // For example, show an alert or perform a different action
                         alert('Please book the service and comeback.');
-                        console.log('TotalQuantity is not present or zero');
                       }
                     }}>
                     <Entypo name="shopping-cart" color="white" size={30} />
@@ -631,108 +543,99 @@ function Home({navigation}) {
               </View>
 
               <View style={{paddingHorizontal: 10, marginTop: 215}}>
-  {/* Text for Trending Services */}
-  <Text style={styles.trendingText}>Buy 1 Get 1 Free</Text>
-  <Text style={styles.trendingText1}>(Limited Period Offer)</Text>
+                <Text style={styles.trendingText}>Buy 1 Get 1 Free</Text>
+                <Text style={styles.trendingText1}>(Limited Period Offer)</Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-around',
+                    alignItems: 'center',
+                    paddingVertical: 2,
+                    marginTop: 8,
+                  }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const targetSubCategory = sdata.find(
+                        item =>
+                          item.subcategory?.trim().toLowerCase() ===
+                          'varalakshmi home cleaning deals',
+                      );
+                      if (targetSubCategory) {
+                        navigation.navigate('repairing', {
+                          cdata: targetSubCategory,
+                        });
+                      } else {
+                        alert('Service details not available at the moment.');
+                      }
+                    }}>
+                    <Image
+                      source={require('../../../assets/vp1.png')}
+                      style={{width: 100, height: 131, borderRadius: 5}}
+                    />
+                  </TouchableOpacity>
 
-  {/* Images Row is now a standard View */}
-  <View
-    style={{
-      flexDirection: 'row',          // Arranges items horizontally
-      justifyContent: 'space-around', // Distributes items evenly with space
-      alignItems: 'center',          // Aligns items vertically in the center
-      paddingVertical: 2,
-      marginTop: 8,
-    }}>
-    {/* Image 1 */}
-    <TouchableOpacity
-      onPress={() => {
-        const targetSubCategory = sdata.find(
-          item =>
-            item.subcategory?.trim().toLowerCase() === 'varalakshmi home cleaning deals',
-        );
-        if (targetSubCategory) {
-          navigation.navigate('repairing', {
-            cdata: targetSubCategory,
-          });
-        } else {
-          console.warn(
-            "Subcategory 'geyser repairing' not found in sdata.",
-          );
-          alert('Service details not available at the moment.');
-        }
-      }}>
-      <Image
-        source={require('../../../assets/vp1.png')}
-        style={{width: 100, height: 131, borderRadius: 5}}
-      />
-    </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const targetSubCategory = sdata.find(
+                        item =>
+                          item.subcategory?.trim().toLowerCase() ===
+                          'varalakshmi bathroom deals',
+                      );
+                      if (targetSubCategory) {
+                        navigation.navigate('repairing', {
+                          cdata: targetSubCategory,
+                        });
+                      } else {
+                        alert(
+                          'Pest control service details not available at the moment.',
+                        );
+                      }
+                    }}>
+                    <Image
+                      source={require('../../../assets/vp3.png')}
+                      style={{width: 100, height: 131, borderRadius: 5}}
+                    />
+                  </TouchableOpacity>
 
-    {/* Image 2 (Example) */}
-    <TouchableOpacity
-      onPress={() => {
-        const targetSubCategory = sdata.find(
-          item =>
-            item.subcategory?.trim().toLowerCase() === 'varalakshmi bathroom deals',
-        );
-        if (targetSubCategory) {
-          navigation.navigate('repairing', {
-            cdata: targetSubCategory,
-          });
-        } else {
-          console.warn(
-            "Subcategory 'general pest control' not found in sdata.",
-          );
-          alert('Pest control service details not available at the moment.');
-        }
-      }}>
-      <Image
-        source={require('../../../assets/vp3.png')}
-        style={{width: 100, height: 131, borderRadius: 5}}
-      />
-    </TouchableOpacity>
-
-    {/* Image 3 */}
-    <TouchableOpacity 
-    onPress={() => {
-        const targetSubCategory = sdata.find(
-          item =>
-            item.subcategory?.trim().toLowerCase() === 'varalakshmi kitchen deals',
-        );
-        if (targetSubCategory) {
-          navigation.navigate('repairing', {
-            cdata: targetSubCategory,
-          });
-        } else {
-          console.warn(
-            "Subcategory 'general pest control' not found in sdata.",
-          );
-          alert('Pest control service details not available at the moment.');
-        }
-      }}>
-      <Image
-        source={require('../../../assets/vp4.png')}
-        style={{
-          width: 100,
-          height: 131,
-          borderRadius: 5,
-        }}
-      />
-    </TouchableOpacity>
-  </View>
-</View>
-</View> 
-          
+                  <TouchableOpacity
+                    onPress={() => {
+                      const targetSubCategory = sdata.find(
+                        item =>
+                          item.subcategory?.trim().toLowerCase() ===
+                          'varalakshmi kitchen deals',
+                      );
+                      if (targetSubCategory) {
+                        navigation.navigate('repairing', {
+                          cdata: targetSubCategory,
+                        });
+                      } else {
+                        alert(
+                          'Pest control service details not available at the moment.',
+                        );
+                      }
+                    }}>
+                    <Image
+                      source={require('../../../assets/vp4.png')}
+                      style={{
+                        width: 100,
+                        height: 131,
+                        borderRadius: 5,
+                      }}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
 
             <View style={{backgroundColor: 'white'}}>
               <View style={{}}>
                 <Text
                   style={{
                     color: 'black',
-                    // fontFamily: 'Poppins-Bold',
                     fontSize: 18,
                     paddingLeft: 20,
                     marginTop: 10,
+                    fontFamily: 'Poppins-Bold',
                   }}>
                   Services By Us
                 </Text>
@@ -748,8 +651,7 @@ function Home({navigation}) {
                               if (item.category === 'Packers & Movers') {
                                 navigation.navigate('Bottomtab');
                               } else {
-                                setSelectedCategory(item.category);
-                                toggleModal();
+                                handleCategoryPress(item.category);
                               }
                             }}
                             style={{
@@ -772,9 +674,7 @@ function Home({navigation}) {
                                   {item.category}
                                 </Text>
                               </View>
-                            ) : (
-                              <></>
-                            )}
+                            ) : null}
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -793,14 +693,13 @@ function Home({navigation}) {
                 style={styles.scrollView}>
                 {imageSliderData.map((e, index) => (
                   <TouchableOpacity
-                    key={index.toString()} // Use index as a key (assuming it's unique)
+                    key={index.toString()}
                     style={styles.imageContainer}
                     onPress={() => {
                       const filteredData = sdata.filter(
                         i => i.subcategory === e.subcategory,
                       );
                       if (filteredData.length > 0) {
-                        // Check if filteredData is not empty
                         navigation.navigate('repairing', {
                           cdata: filteredData[0],
                         });
@@ -825,7 +724,6 @@ function Home({navigation}) {
               </View>
             </SafeAreaView>
 
-            {/* Cleaning */}
             <Category
               navigation={navigation}
               category={categorydata[0]?.category}
@@ -857,7 +755,7 @@ function Home({navigation}) {
                     navigation.navigate('Bottomtab');
                   } else {
                     navigation.navigate('repairing', {
-                      cdata: i,
+                      cdata: categorydata[5],
                     });
                   }
                 }}>
@@ -877,9 +775,6 @@ function Home({navigation}) {
                       marginTop: 5,
                       marginBottom: 5,
                       marginLeft: 3,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      alignSelf: 'center',
                       fontFamily: 'Poppins-Medium',
                     }}>
                     1lakh + Happy Customer
@@ -903,11 +798,11 @@ function Home({navigation}) {
                         uri: 'https://vijayahomeservices.b-cdn.net/packersbanner.mp4',
                       }}
                       style={{width: '100%', height: 180}}
-                      resizeMode="cover" // Move resizeMode here
+                      resizeMode="cover"
                       loop
                       muted
                       repeat
-                      controls={false} // Hide video controls if not needed
+                      controls={false}
                     />
                   </Card>
                 </Pressable>
@@ -995,105 +890,82 @@ function Home({navigation}) {
                 <Text style={styles.homepagetitle}>
                   {homepagetitledata[0]?.title}
                 </Text>
-
                 <View style={{marginTop: 10}}>
-                  <ScrollView
+                  <FlatList
+                    data={sdata.filter(
+                      i => i.homePagetitle === homepagetitledata[0]?.title,
+                    )}
+                    keyExtractor={item => item._id}
                     horizontal={true}
-                    showsHorizontalScrollIndicator={false}>
-                    {sdata
-                      .filter(
-                        i => i.homePagetitle === homepagetitledata[0]?.title,
-                      ) // Filter based on category
-                      .map((i, index) => (
-                        <View
-                          key={i._id || index}
-                          style={{flex: 1, flexDirection: 'row'}}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              if (i.category.trim() === 'Packers & Movers') {
-                                navigation.navigate('Bottomtab'); // Uncomment this when needed.
-                              } else {
-                                navigation.navigate('repairing', {
-                                  cdata: i,
-                                });
-                              }
+                    showsHorizontalScrollIndicator={false}
+                    renderItem={({item: i}) => (
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (i.category.trim() === 'Packers & Movers') {
+                            navigation.navigate('Bottomtab');
+                          } else {
+                            navigation.navigate('repairing', {cdata: i});
+                          }
+                        }}
+                        style={{paddingHorizontal: 8}}>
+                        <View style={styles.servicesimgrow1}>
+                          <Image
+                            source={{
+                              uri: `https://api.vijayhomesuperadmin.in/subcat/${i.subcatimg}`,
                             }}
-                            style={{
-                              flex: 1 / 3, // Each item should take 1/3 of the row width
-                              paddingHorizontal: 8, // Add some horizontal spacing between items
-                            }}>
-                            <View style={styles.servicesimgrow1}>
-                              <Image
-                                source={{
-                                  uri: `https://api.vijayhomesuperadmin.in/subcat/${i.subcatimg}`,
-                                }}
-                                style={styles.servicesimg1}
-                              />
-                            </View>
-                            <Text style={styles.servicestext1}>
-                              {i.subcategory}
-                            </Text>
-                          </TouchableOpacity>
+                            style={styles.servicesimg1}
+                          />
                         </View>
-                      ))}
-                  </ScrollView>
+                        <Text style={styles.servicestext1}>{i.subcategory}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
                 </View>
               </View>
             </View>
+
             {homepagetitledata[1]?.title ? (
               <View style={{backgroundColor: 'white'}}>
                 <View style={{margin: 20}}>
                   <Text style={styles.homepagetitle}>
                     {homepagetitledata[1]?.title}
                   </Text>
-
                   <View style={{marginTop: 10}}>
-                    <ScrollView
+                    <FlatList
+                      data={sdata.filter(
+                        i => i.homePagetitle === homepagetitledata[1]?.title,
+                      )}
+                      keyExtractor={item => item._id}
                       horizontal={true}
-                      showsHorizontalScrollIndicator={false}>
-                      {sdata
-                        .filter(
-                          i => i.homePagetitle === homepagetitledata[1]?.title,
-                        ) // Filter based on category
-                        .map((i, index) => (
-                          <View
-                            key={i._id || index}
-                            style={{flex: 1, flexDirection: 'row'}}>
-                            <TouchableOpacity
-                              onPress={() => {
-                                if (i.category.trim() === 'Packers & Movers') {
-                                  navigation.navigate('Bottomtab'); // Uncomment this when needed.
-                                } else {
-                                  navigation.navigate('repairing', {
-                                    cdata: i,
-                                  });
-                                }
+                      showsHorizontalScrollIndicator={false}
+                      renderItem={({item: i}) => (
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (i.category.trim() === 'Packers & Movers') {
+                              navigation.navigate('Bottomtab');
+                            } else {
+                              navigation.navigate('repairing', {cdata: i});
+                            }
+                          }}
+                          style={{paddingHorizontal: 8}}>
+                          <View style={styles.servicesimgrow1}>
+                            <Image
+                              source={{
+                                uri: `https://api.vijayhomesuperadmin.in/subcat/${i.subcatimg}`,
                               }}
-                              style={{
-                                flex: 1 / 3, // Each item should take 1/3 of the row width
-                                paddingHorizontal: 8, // Add some horizontal spacing between items
-                              }}>
-                              <View style={styles.servicesimgrow1}>
-                                <Image
-                                  source={{
-                                    uri: `https://api.vijayhomesuperadmin.in/subcat/${i.subcatimg}`,
-                                  }}
-                                  style={styles.servicesimg1}
-                                />
-                              </View>
-                              <Text style={styles.servicestext1}>
-                                {i.subcategory}
-                              </Text>
-                            </TouchableOpacity>
+                              style={styles.servicesimg1}
+                            />
                           </View>
-                        ))}
-                    </ScrollView>
+                          <Text style={styles.servicestext1}>
+                            {i.subcategory}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    />
                   </View>
                 </View>
               </View>
-            ) : (
-              <></>
-            )}
+            ) : null}
             <TouchableOpacity
               onPress={() => navigation.navigate('socialmedia')}
               style={{
@@ -1126,16 +998,13 @@ function Home({navigation}) {
             </TouchableOpacity>
           </View>
         </ScrollView>
-        {/***************************************************************/}
-        {/*           START: FLOATING BUTTON AND OFFER MODAL            */}
-        {/***************************************************************/}
-         <TouchableOpacity
+        <TouchableOpacity
           style={styles.floatingButton}
           onPress={() => setOfferModalVisible(true)}>
           <Text style={styles.floatingButtonText}>VARALAKSHMI OFFERS</Text>
         </TouchableOpacity>
 
-        {/* MODIFIED: The entire Modal is rebuilt for the offers list */}
+        {/* MODAL FOR OFFERS - UNCHANGED */}
         <Modal
           isVisible={isOfferModalVisible}
           onBackdropPress={() => setOfferModalVisible(false)}
@@ -1144,102 +1013,81 @@ function Home({navigation}) {
           animationIn="zoomIn"
           animationOut="zoomOut"
           useNativeDriverForBackdrop={true}>
-          
           <View style={styles.offerModalContainer}>
-            {/* Close Icon Button (remains the same) */}
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setOfferModalVisible(false)}>
               <AntDesign name="closecircle" size={28} color="darkred" />
             </TouchableOpacity>
 
-            {/* Modal Content */}
             <Text style={styles.offerModalTitle}>Varalaksmi Pooja Offers</Text>
             
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* We now map over the offersData array to create the list */}
               {offersData.map((offer, index) => (
                 <Animatable.View
                   key={offer.id}
-                  animation="fadeInUp" // Each item will fade in and slide up
+                  animation="fadeInUp"
                   duration={800}
-                  delay={index * 150} // Staggered animation for a professional effect
-                >
+                  delay={index * 150}>
                   <TouchableOpacity
                     style={styles.offerItem}
-                     onPress={() => {
+                    onPress={() => {
                       const target = (sdata || []).find(
-                        item => item.subcategory?.trim().toLowerCase() === offer.targetSubcategory
+                        item =>
+                          item.subcategory?.trim().toLowerCase() ===
+                          offer.targetSubcategory,
                       );
-                      
+
                       if (target) {
-                        setOfferModalVisible(false); // Close the modal
-                        navigation.navigate('repairing', { cdata: target });
+                        setOfferModalVisible(false);
+                        navigation.navigate('repairing', {cdata: target});
                       } else {
                         alert('Deal not available at the moment.');
                       }
-                    }}
-                    >
+                    }}>
                     <View style={styles.offerContent}>
                       <Text style={styles.offerTitle}>{offer.title}</Text>
                       <Text style={styles.offerDeal}>{offer.deal}</Text>
-                      {/* This part only shows if a coupon code exists */}
                       {offer.coupon && (
                         <View style={styles.couponContainer}>
-                          <Text style={styles.couponText}>
-                           
-                          </Text>
+                          <Text style={styles.couponText}></Text>
                         </View>
                       )}
                     </View>
-                    <MaterialIcons name="keyboard-arrow-right" size={24} color="#555" />
+                    <MaterialIcons
+                      name="keyboard-arrow-right"
+                      size={24}
+                      color="#555"
+                    />
                   </TouchableOpacity>
-                  {/* Add a separator between items, but not after the last one */}
-                  {index < offersData.length - 1 && <View style={styles.separator} />}
+                  {index < offersData.length - 1 && (
+                    <View style={styles.separator} />
+                  )}
                 </Animatable.View>
               ))}
             </ScrollView>
           </View>
         </Modal>
-        {/***************************************************************/}
-        {/*            END: FLOATING BUTTON AND OFFER MODAL             */}
-        {/***************************************************************/}
 
-        <Modal isVisible={isModalVisible}>
-          <TouchableOpacity onPress={close}>
-            <AntDesign
-              name="closecircleo"
-              color="darkred"
-              size={30}
-              style={{
-                width: 30,
-                justifyContent: 'flex-end',
-                alignSelf: 'flex-end',
-                textAlign: 'right',
-                marginTop: 10,
-                backgroundColor: 'white',
-                zIndex: 11,
-                borderRadius: 50,
-              }}
-            />
-          </TouchableOpacity>
-
-          <View style={{backgroundColor: 'white'}}>
-            <Image
-              source={require('../../../assets/city.gif')}
-              style={{
-                width: '100%',
-                height: 100,
-                borderRadius: 10,
-                backgroundColor: 'white',
-                position: 'fixed',
-                obejctFit: 'cover',
-
-                paddingBottom: 10,
-              }}
-              repeat={true}
-              muted={true}
-            />
+        {/* ================================================================= */}
+        {/* MODIFIED SERVICES MODAL (BOTTOM SHEET)                            */}
+        {/* ================================================================= */}
+        <Modal
+          isVisible={isModalVisible}
+          onBackdropPress={close}
+          onSwipeComplete={close}
+          swipeDirection="down"
+          style={styles.bottomModal}
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          backdropOpacity={0.4}>
+          <View style={styles.modalContentContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{SelectedCategory}</Text>
+              <TouchableOpacity onPress={close}>
+                <AntDesign name="closecircle" size={28} color="#999" />
+              </TouchableOpacity>
+            </View>
 
             {postcategorydata.length > 0 ? (
               <FlatList
@@ -1247,22 +1095,18 @@ function Home({navigation}) {
                   (a, b) => parseInt(a.order.trim()) - parseInt(b.order.trim()),
                 )}
                 numColumns={4}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(item, index) => item._id || index.toString()}
                 renderItem={({item}) => (
                   <TouchableOpacity
                     onPress={() => {
-                      setModalVisible(false);
-                      setSelectedCategory('');
+                      close();
                       navigation.navigate('repairing', {cdata: item});
                     }}
                     style={{
-                      flex: 1,
-                      justifyContent: 'center',
+                      flex: 1 / 4,
+                      justifyContent: 'flex-start',
                       alignItems: 'center',
-                      margin: 5,
-                      padding: 3,
-                      paddingBottom: 10,
-                      paddingTop: 10,
+                      marginBottom: 20,
                     }}>
                     <View>
                       <Image
@@ -1270,107 +1114,99 @@ function Home({navigation}) {
                           uri: `https://api.vijayhomesuperadmin.in/subcat/${item.subcatimg}`,
                         }}
                         style={{
-                          width: 60,
-                          height: 60,
+                          width: 65,
+                          height: 65,
                           borderRadius: 10,
                           borderWidth: 1,
-                          borderColor: 'lightgrey',
+                          borderColor: '#eee',
                         }}
                       />
                     </View>
                     <Text
                       style={{
-                        fontSize: 10,
+                        fontSize: 12,
                         color: 'black',
-                        textAlign: 'left',
-                        height: 'auto',
+                        textAlign: 'center',
                         fontFamily: 'Poppins-Medium',
-                      }}>
+                        marginTop: 8,
+                      }}
+                      numberOfLines={2}>
                       {item.subcategory}
                     </Text>
                   </TouchableOpacity>
                 )}
               />
             ) : (
-              <View>
+              <View style={{height: 250, justifyContent: 'center', alignItems: 'center'}}>
                 <ActivityIndicator size="large" color="darkred" />
               </View>
             )}
           </View>
         </Modal>
-        <>
-          <StatusBar backgroundColor="darkred" barStyle="light-content" />
-
-          <Modal isVisible={CityModalVisible}>
-            <SafeAreaView
-              style={{borderRadius: 20, backgroundColor: 'white', flex: 1}}>
-              <Image
-                source={require('../../../assets/city.gif')}
-                style={{
-                  width: '100%',
-                  height: 100,
-                  borderRadius: 10,
-                  backgroundColor: 'white',
-                  position: 'fixed',
-                  obejctFit: 'cover',
-                }}
-                repeat={true}
-                muted={true}
-              />
-
-              <View style={{flex: 1, paddingTop: 10, overflow: 'hidden'}}>
-                <ScrollView contentContainerStyle={styles.modalContainer}>
-                  {citydata
-                    .slice()
-                    .sort((a, b) => a.city.localeCompare(b.city))
-                    .map((i, index) => (
-                      <TouchableOpacity
-                        key={i._id}
-                        onPress={() => setUserCity(i.city)}
-                        style={[
-                          styles.cityItem,
-                          {
-                            backgroundColor:
-                              selectedCity === i.city ? 'darkred' : 'white',
-                          },
-                        ]}>
-                        {/* Circular Image */}
-                        <Image
-                          source={cityImages[index + 1]} // Dynamically load city images
-                          style={styles.cityImage}
-                        />
-                        {/* City Name */}
-                        <Text
-                          style={{
-                            color:
-                              selectedCity === i.city
-                                ? 'white' // White font when selected
-                                : [
-                                    'Bangalore',
-                                    'Chennai',
-                                    'Delhi',
-                                    'Gurugram',
-                                    'Hyderabad',
-                                    'Mumbai',
-                                    'Pune',
-                                  ].includes(i.city)
-                                ? 'red' // Red font for specific cities when not selected
-                                : 'black', // Default font color for other cities
-                            marginTop: 3,
-                            marginLeft: 5,
-                            fontFamily: 'Poppins-Medium',
-                            fontSize: 12,
-                            marginBottom: 5,
-                          }}>
-                          {i.city}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                </ScrollView>
-              </View>
-            </SafeAreaView>
-          </Modal>
-        </>
+        
+        {/* CITY AND APP UPDATE MODALS - UNCHANGED */}
+        <Modal isVisible={CityModalVisible}>
+          <SafeAreaView
+            style={{borderRadius: 20, backgroundColor: 'white', flex: 1}}>
+            <Image
+              source={require('../../../assets/city.gif')}
+              style={{
+                width: '100%',
+                height: 100,
+                borderRadius: 10,
+                backgroundColor: 'white',
+              }}
+            />
+            <View style={{flex: 1, paddingTop: 10, overflow: 'hidden'}}>
+              <ScrollView contentContainerStyle={styles.modalContainer}>
+                {citydata
+                  .slice()
+                  .sort((a, b) => a.city.localeCompare(b.city))
+                  .map((i, index) => (
+                    <TouchableOpacity
+                      key={i._id}
+                      onPress={() => setUserCity(i.city)}
+                      style={[
+                        styles.cityItem,
+                        {
+                          backgroundColor:
+                            selectedCity === i.city ? 'darkred' : 'white',
+                        },
+                      ]}>
+                      <Image
+                        source={cityImages[index + 1]}
+                        style={styles.cityImage}
+                      />
+                      <Text
+                        style={{
+                          color:
+                            selectedCity === i.city
+                              ? 'white'
+                              : [
+                                  'Bangalore',
+                                  'Chennai',
+                                  'Delhi',
+                                  'Gurugram',
+                                  'Hyderabad',
+                                  'Mumbai',
+                                  'Pune',
+                                ].includes(i.city)
+                              ? 'red'
+                              : 'black',
+                          marginTop: 3,
+                          marginLeft: 5,
+                          fontFamily: 'Poppins-Medium',
+                          fontSize: 12,
+                          marginBottom: 5,
+                        }}>
+                        {i.city}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </ScrollView>
+            </View>
+          </SafeAreaView>
+        </Modal>
 
         <Modal isVisible={appupdateModalVisible}>
           <View style={{borderRadius: 20, backgroundColor: 'white'}}>
@@ -1384,11 +1220,10 @@ function Home({navigation}) {
               }}>
               New update is available
             </Text>
-            <Text style={{color: 'grey', textAlign: 'center', marginTop: 20}}>
+            <Text style={{color: 'grey', textAlign: 'center', margin: 20}}>
               The current version of this application is no longer supported. We
               apologize for any inconvenience we may have caused you.
             </Text>
-
             <View style={{alignItems: 'center'}}>
               <TouchableOpacity onPress={handleUpdatePress}>
                 <Text
@@ -1415,6 +1250,7 @@ function Home({navigation}) {
 }
 
 const styles = StyleSheet.create({
+  // ORIGINAL STYLES
   container1: {
     flex: 1,
     backgroundColor: 'white',
@@ -1432,23 +1268,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   cityItem: {
-    flexBasis: '30%', // Set to 48% for 2 cities per row with some spacing
+    flexBasis: '30%',
     margin: 5,
     padding: 1,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column', // Stack image and text vertically
+    flexDirection: 'column',
   },
   cityImage: {
-    width: 55, // Adjust size as needed
-    height: 55, // Adjust size as needed
-    borderRadius: 25, // Makes the image circular
-    marginBottom: 3, // Space between image and text
+    width: 55,
+    height: 55,
+    borderRadius: 25,
+    marginBottom: 3,
   },
-  card: {
-    // width: windowWidth,
-  },
+  card: {},
   image: {
     width: '100%',
     height: 150,
@@ -1467,35 +1301,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeIndicator: {
-    backgroundColor: 'red', // Customize the active indicator color
+    backgroundColor: 'red',
   },
   container: {
     flex: 1,
     backgroundColor: 'white',
-  },
-  lottie: {
-    width: 100,
-    height: 100,
-  },
-
-  row: {
-    backgroundColor: 'white',
-    flexDirection: 'row',
-    padding: 15,
-  },
-  textinput: {
-    margin: 15,
-    borderRadius: 10,
-    paddingLeft: 50,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    fontSize: 16,
-  },
-  textinputicon: {
-    position: 'absolute',
-    top: 27,
-    marginLeft: 13,
-    paddingLeft: 10,
   },
   homepagetitle: {
     color: 'black',
@@ -1503,20 +1313,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingVertical: 5,
   },
-  elevation: {
-    elevation: 2,
-  },
-  row1: {
-    backgroundColor: 'white',
-    marginTop: 10,
-    flex: 1,
-  },
   servicesimgrow: {
-    // backgroundColor: "#e8f0fe75",
     padding: 1,
     borderRadius: 5,
-    // width: 80,
-    // height: 80,
     justifyContent: 'center',
     alignContent: 'center',
     alignSelf: 'center',
@@ -1540,10 +1339,8 @@ const styles = StyleSheet.create({
   },
   servicestext: {
     color: 'black',
-    // fontWeight: "bold",
     textAlign: 'center',
     fontSize: 11,
-    // height: 30,
     marginTop: 5,
     fontFamily: 'Poppins-Medium',
   },
@@ -1552,111 +1349,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
     textAlign: 'center',
     fontSize: 12,
-    // height: ,
     width: 100,
-  },
-  wrow: {
-    backgroundColor: 'white',
-    padding: 20,
-    flex: 0.5,
-    borderRadius: 5,
-    width: 250,
-    marginBottom: 5,
-  },
-  wrow1: {
-    backgroundColor: 'white',
-    padding: 20,
-    flex: 0.5,
-    borderRadius: 5,
-    width: 250,
-    marginLeft: 10,
-    marginBottom: 5,
-  },
-  helpimg: {
-    width: 60,
-    height: 60,
-    marginTop: 70,
-    borderRadius: 50,
-  },
-  homeimg: {
-    width: '100%',
-    height: 200,
-    borderRadius: 10,
-  },
-  row2: {
-    backgroundColor: '#a61717',
-    marginTop: 20,
-  },
-  listTab: {
-    flex: 1,
-    backgroundColor: 'white',
-    flexDirection: 'row',
-    marginTop: 10,
-  },
-  btnTab: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: 'grey',
-    paddingTop: 8,
-    paddingBottom: 8,
-    borderRadius: 10,
-    marginRight: 10,
-    width: 80,
-    justifyContent: 'center',
-    // width: Dimensions.get('window').width / 3.5,
-  },
-
-  textTab: {
-    fontSize: 12,
-  },
-  btnTabActive: {
-    borderColor: 'red',
-  },
-  textTabActive: {
-    color: 'red',
-  },
-  itemcontainer: {
-    flexDirection: 'row',
-    paddingVertical: 15,
-  },
-  filtertext: {
-    position: 'absolute',
-    left: 33,
-    fontSize: 12,
-    color: 'black',
-  },
-  filtericon: {
-    position: 'absolute',
-    bottom: 5,
-    right: 35,
-    color: 'white',
-    fontSize: 30,
-  },
-  filterimg: {
-    width: 130,
-    height: 130,
-    borderRadius: 10,
-  },
-  filtercontainer: {
-    flex: 0.5,
-    textAlign: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    color: 'black',
-    paddingLeft: 40,
-    fontFamily: 'Poppins-Medium',
-    fontSize: 15,
-  },
-  textinput1: {
-    // backgroundColor: '#eee',
-    borderWidth: 1,
-    borderColor: '#eee',
-    width: '100%',
-    fontSize: 16,
-    marginTop: 20,
-    paddingLeft: 10,
-    borderRadius: 5,
   },
   bcard: {
     width: '100%',
@@ -1669,63 +1362,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     resizeMode: 'contain',
   },
-  hrtag: {
-    height: 1,
-    backgroundColor: 'lightgray',
-    margin: 15,
-  },
   booknow: {
     position: 'absolute',
     zIndex: 1,
     backgroundColor: 'rgb(135, 20, 20)',
     padding: 5,
     borderRadius: 3,
-    bottom: -15, // Adjust this value to control the distance from the bottom
-    alignSelf: 'center', // Center the view horizontally
-    alignItems: 'center', // Center the text horizontally within the view
-    justifyContent: 'center',
-  },
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
+    bottom: -15,
+    alignSelf: 'center',
     alignItems: 'center',
-    marginTop: 22,
-    width: '100%',
-  },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  button: {
-    borderRadius: 20,
-    padding: 10,
-    elevation: 2,
-  },
-  buttonOpen: {
-    backgroundColor: '#F194FF',
-  },
-  buttonClose: {
-    backgroundColor: '#2196F3',
-  },
-  textStyle: {
-    color: 'white',
-    fontFamily: 'Poppins-Medium',
-    textAlign: 'center',
-  },
-  modalText: {
-    marginBottom: 15,
-    textAlign: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     width: WIDTH,
@@ -1734,10 +1380,10 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     borderRadius: 10,
-    marginHorizontal: 10, // Adjust this value to set the desired gap on both sides
+    marginHorizontal: 10,
   },
   image: {
-    width: WIDTH - 20, // Adjust this value to account for the gap on both sides
+    width: WIDTH - 20,
     height: HEIGHT * 0.25,
     borderRadius: 10,
   },
@@ -1755,38 +1401,27 @@ const styles = StyleSheet.create({
     margin: 3,
     color: '#ffff',
   },
-  video: {
-    position: 'absolute', // Position the video behind content
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-    zIndex: -1, // Push the video behind other content
-  },
-
   trendingText: {
-    color: 'darkred', // Set text color to white
-    fontSize: 28, // Set font size to 18px
-    fontFamily: 'Poppins', // Optionally make it bold
-    textAlign: 'left', // Center the text
-    marginBottom: 0, // Add some spacing below the text
-    marginLeft: 10, // Add some spacing below the text
-    fontWeight: 'bold', // Make the text bold
+    color: 'darkred',
+    fontSize: 28,
+    fontFamily: 'Poppins',
+    textAlign: 'left',
+    marginBottom: 0,
+    marginLeft: 10,
+    fontWeight: 'bold',
   },
   trendingText1: {
-    color: 'darkred', // Set text color to white
-    fontSize: 12, // Set font size to 18px
-    fontFamily: 'Poppins-Medium', // Optionally make it bold
-    textAlign: 'left', // Center the text
-    marginBottom: 0, // Add some spacing below the text
-    marginLeft: 85, // Add some spacing below the text
+    color: 'darkred',
+    fontSize: 12,
+    fontFamily: 'Poppins-Medium',
+    textAlign: 'left',
+    marginBottom: 0,
+    marginLeft: 85,
   },
   backgroundImage: {
-    width: '100%', // Set image to fill the width of the container
-    height: '100%', // Set image to fill the height of the container
-    position: 'absolute', // Ensures it acts as a background
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
@@ -1803,41 +1438,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  overlayGif: {
-    width: '100%',
-    height: 'auto',
-  },
   webview: {
-    width: 400, // Adjust width
-    height: 250, // Adjust height
+    width: 400,
+    height: 250,
     overflow: 'hidden',
     backgroundColor: 'transparent',
   },
-  container1: {
-    flex: 1,
-    // justifyContent: 'center', // Optional: if you want to center video if it's smaller
-    // alignItems: 'center',    // Optional
-  },
-  backgroundVideo: {
-    // If you want it to be a full-screen background:
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
-  },
-
-  // --- START: NEW STYLES FOR FLOATING BUTTON AND MODAL ---
   floatingButton: {
     position: 'absolute',
-    width: 150, // Wider to fit text
+    width: 150,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    right: 1, // Adjusted position
-    bottom: 10, // Adjusted position
-    backgroundColor: '#800000', // Changed to orange
-   borderRadius: 15,
+    right: 1,
+    bottom: 10,
+    backgroundColor: '#800000',
+    borderRadius: 15,
     elevation: 8,
     shadowColor: 'white',
     shadowOffset: {width: 0, height: 4},
@@ -1849,18 +1465,16 @@ const styles = StyleSheet.create({
   floatingButtonText: {
     color: 'white',
     fontSize: 12,
-    fontFamily: 'Poppins-Bold', // Use a bold font if available
+    fontFamily: 'Poppins-Bold',
   },
-
-  // MODIFIED: Styles for the new offer modal
   offerModalContainer: {
-    backgroundColor: '#f7f7f7', // A light, clean background
-    paddingHorizontal: 0, // Padding will be on items
+    backgroundColor: '#f7f7f7',
+    paddingHorizontal: 0,
     paddingVertical: 25,
-    paddingTop: 45, // Make space for the close button
+    paddingTop: 45,
     borderRadius: 20,
     position: 'relative',
-    maxHeight: '80%', // Ensure modal doesn't take up the whole screen
+    maxHeight: '80%',
   },
   modalCloseButton: {
     position: 'absolute',
@@ -1874,10 +1488,8 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 15,
     textAlign: 'center',
-    paddingHorizontal: 20, // Give title padding
+    paddingHorizontal: 20,
   },
-
-  // NEW: Styles for each individual offer item
   offerItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1887,12 +1499,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   offerContent: {
-    flex: 1, // Takes up all available space
+    flex: 1,
   },
   offerTitle: {
     fontSize: 16,
     fontFamily: 'Poppins-Bold',
-    color: '#2c3e50', // A dark, soft black
+    color: '#2c3e50',
   },
   offerDeal: {
     fontSize: 14,
@@ -1901,12 +1513,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   couponContainer: {
-    backgroundColor: '#fdeceb', // A very light red
+    backgroundColor: '#fdeceb',
     borderRadius: 5,
     paddingVertical: 4,
     paddingHorizontal: 8,
     marginTop: 8,
-    alignSelf: 'flex-start', // Important: makes the background only as wide as the text
+    alignSelf: 'flex-start',
   },
   couponText: {
     color: 'darkred',
@@ -1916,9 +1528,37 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     width: '90%',
-    backgroundColor: '#e0e0e0', // A light grey line
+    backgroundColor: '#e0e0e0',
     alignSelf: 'center',
   },
-  // --- END: NEW STYLES ---
+
+  // ===============================================
+  // NEW STYLES FOR BOTTOM SHEET MODAL
+  // ===============================================
+  bottomModal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  modalContentContainer: {
+    backgroundColor: 'white',
+    padding: 16,
+    paddingTop: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: HEIGHT * 0.6, // Set max height to 60% of screen
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: 'Poppins-Bold',
+    color: 'black',
+  },
 });
+
 export default Home;
