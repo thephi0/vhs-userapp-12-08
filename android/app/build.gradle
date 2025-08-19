@@ -26,8 +26,8 @@ android {
         applicationId "com.vhs1"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 131
-        versionName "8.6.5"
+        versionCode 132
+        versionName "8.6.6"
     }
     signingConfigs {
         release {

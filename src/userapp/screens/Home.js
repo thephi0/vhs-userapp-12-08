@@ -543,89 +543,129 @@ function Home({navigation}) {
               </View>
 
               <View style={{paddingHorizontal: 10, marginTop: 215}}>
-                <Text style={styles.trendingText}>Buy 1 Get 1 Free</Text>
-                <Text style={styles.trendingText1}>(Limited Period Offer)</Text>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-around',
-                    alignItems: 'center',
-                    paddingVertical: 2,
-                    marginTop: 8,
-                  }}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      const targetSubCategory = sdata.find(
-                        item =>
-                          item.subcategory?.trim().toLowerCase() ===
-                          'varalakshmi home cleaning deals',
-                      );
-                      if (targetSubCategory) {
-                        navigation.navigate('repairing', {
-                          cdata: targetSubCategory,
-                        });
-                      } else {
-                        alert('Service details not available at the moment.');
-                      }
-                    }}>
-                    <Image
-                      source={require('../../../assets/vp1.png')}
-                      style={{width: 100, height: 131, borderRadius: 5}}
-                    />
-                  </TouchableOpacity>
+  {/* Text for Trending Services */}
+  <Text style={styles.trendingText}></Text>
+  <Text style={styles.trendingText1}></Text>
 
-                  <TouchableOpacity
-                    onPress={() => {
-                      const targetSubCategory = sdata.find(
-                        item =>
-                          item.subcategory?.trim().toLowerCase() ===
-                          'varalakshmi bathroom deals',
-                      );
-                      if (targetSubCategory) {
-                        navigation.navigate('repairing', {
-                          cdata: targetSubCategory,
-                        });
-                      } else {
-                        alert(
-                          'Pest control service details not available at the moment.',
-                        );
-                      }
-                    }}>
-                    <Image
-                      source={require('../../../assets/vp3.png')}
-                      style={{width: 100, height: 131, borderRadius: 5}}
-                    />
-                  </TouchableOpacity>
+  {/* Images Row is now a standard View */}
+  <View
+    style={{
+      flexDirection: 'row',          // Arranges items horizontally
+      justifyContent: 'space-around', // Distributes items evenly with space
+      alignItems: 'center',          // Aligns items vertically in the center
+      paddingVertical: 2,
+      marginTop: 8,
+    }}>
+    {/* Image 1 */}
+    <TouchableOpacity
+      onPress={() => {
+        const targetSubCategory = sdata.find(
+          item =>
+            item.subcategory?.trim().toLowerCase() === 'varalakshmi home cleaning deals',
+        );
+        if (targetSubCategory) {
+          navigation.navigate('repairing', {
+            cdata: targetSubCategory,
+          });
+        } else {
+          console.warn(
+            "Subcategory 'geyser repairing' not found in sdata.",
+          );
+          alert('Service details not available at the moment.');
+        }
+      }}>
+      <Image
+        source={require('../../../assets/vp1.png')}
+        style={{width: 90, height: 120, borderRadius: 5}}
+      />
+    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    onPress={() => {
-                      const targetSubCategory = sdata.find(
-                        item =>
-                          item.subcategory?.trim().toLowerCase() ===
-                          'varalakshmi kitchen deals',
-                      );
-                      if (targetSubCategory) {
-                        navigation.navigate('repairing', {
-                          cdata: targetSubCategory,
-                        });
-                      } else {
-                        alert(
-                          'Pest control service details not available at the moment.',
-                        );
-                      }
-                    }}>
-                    <Image
-                      source={require('../../../assets/vp4.png')}
-                      style={{
-                        width: 100,
-                        height: 131,
-                        borderRadius: 5,
-                      }}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+    {/* Image 2 (Example) */}
+    <TouchableOpacity
+      onPress={() => {
+        const targetSubCategory = sdata.find(
+          item =>
+            item.subcategory?.trim().toLowerCase() === 'varalakshmi bathroom deals',
+        );
+        if (targetSubCategory) {
+          navigation.navigate('repairing', {
+            cdata: targetSubCategory,
+          });
+        } else {
+          console.warn(
+            "Subcategory 'general pest control' not found in sdata.",
+          );
+          alert('Pest control service details not available at the moment.');
+        }
+      }}>
+      <Image
+        source={require('../../../assets/vp3.png')}
+        style={{width: 90, height: 120, borderRadius: 5}}
+      />
+    </TouchableOpacity>
+
+    {/* Image 3 */}
+    <TouchableOpacity 
+    onPress={() => {
+        const targetSubCategory = sdata.find(
+          item =>
+            item.subcategory?.trim().toLowerCase() === 'varalakshmi kitchen deals',
+        );
+        if (targetSubCategory) {
+          navigation.navigate('repairing', {
+            cdata: targetSubCategory,
+          });
+        } else {
+          console.warn(
+            "Subcategory 'general pest control' not found in sdata.",
+          );
+          alert('Pest control service details not available at the moment.');
+        }
+      }}>
+      <Image
+        source={require('../../../assets/vp2.png')}
+        style={{
+          width: 90,
+          height: 120,
+          borderRadius: 5,
+        }}
+      />
+    </TouchableOpacity>
+
+     {/* Image 4 (Pest Control) */}
+    <TouchableOpacity 
+      onPress={() => {
+        // Find the specific 'pest control offers' subcategory from your data
+        const targetSubCategory = sdata.find(
+          item =>
+            item.subcategory?.trim().toLowerCase() === 'pest control offers',
+        );
+
+        // If the subcategory is found, navigate to the service page
+        if (targetSubCategory) {
+          navigation.navigate('repairing', {
+            cdata: targetSubCategory,
+          });
+        } else {
+          // If not found, log a warning and show an alert to the user
+          console.warn(
+            "Subcategory 'pest control offers' not found in sdata.",
+          );
+          alert('Pest control service details not available at the moment.');
+        }
+      }}>
+      <Image
+        source={require('../../../assets/vp4.png')}
+        style={{
+          width: 90,
+          height: 120,
+        }}
+      />
+    </TouchableOpacity>
+  </View>
+</View>
+</View> 
+          
 
             <View style={{backgroundColor: 'white'}}>
               <View style={{}}>
@@ -1001,7 +1041,7 @@ function Home({navigation}) {
         <TouchableOpacity
           style={styles.floatingButton}
           onPress={() => setOfferModalVisible(true)}>
-          <Text style={styles.floatingButtonText}>VARALAKSHMI OFFERS</Text>
+          <Text style={styles.floatingButtonText}>INDEPENDENCE DAY OFFERS</Text>
         </TouchableOpacity>
 
         {/* MODAL FOR OFFERS - UNCHANGED */}
@@ -1020,7 +1060,8 @@ function Home({navigation}) {
               <AntDesign name="closecircle" size={28} color="darkred" />
             </TouchableOpacity>
 
-            <Text style={styles.offerModalTitle}>Varalaksmi Pooja Offers</Text>
+            {/* Modal Content */}
+            <Text style={styles.offerModalTitle}>Independence Day Offers</Text>
             
             <ScrollView showsVerticalScrollIndicator={false}>
               {offersData.map((offer, index) => (
