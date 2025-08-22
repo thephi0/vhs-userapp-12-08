@@ -542,10 +542,10 @@ function Home({navigation}) {
                 </View>
               </View>
 
-              <View style={{paddingHorizontal: 10, marginTop: 215}}>
+              <View style={{paddingHorizontal: 10, marginTop: 230}}>
   {/* Text for Trending Services */}
   <Text style={styles.trendingText}></Text>
-  <Text style={styles.trendingText1}></Text>
+  <Text style={styles.trendingText1}> Ganesh Chaturthi Offers</Text>
 
   {/* Images Row is now a standard View */}
   <View
@@ -576,7 +576,7 @@ function Home({navigation}) {
       }}>
       <Image
         source={require('../../../assets/vp1.png')}
-        style={{width: 90, height: 120, borderRadius: 5}}
+        style={{width: 80, height: 100, borderRadius: 5}}
       />
     </TouchableOpacity>
 
@@ -600,7 +600,7 @@ function Home({navigation}) {
       }}>
       <Image
         source={require('../../../assets/vp3.png')}
-        style={{width: 90, height: 120, borderRadius: 5}}
+        style={{width: 80, height: 100, borderRadius: 5}}
       />
     </TouchableOpacity>
 
@@ -625,8 +625,8 @@ function Home({navigation}) {
       <Image
         source={require('../../../assets/vp2.png')}
         style={{
-          width: 90,
-          height: 120,
+          width: 80,
+          height: 100,
           borderRadius: 5,
         }}
       />
@@ -657,8 +657,8 @@ function Home({navigation}) {
       <Image
         source={require('../../../assets/vp4.png')}
         style={{
-          width: 90,
-          height: 120,
+          width: 80,
+          height: 100,
         }}
       />
     </TouchableOpacity>
@@ -674,10 +674,10 @@ function Home({navigation}) {
                     color: 'black',
                     fontSize: 18,
                     paddingLeft: 20,
-                    marginTop: 10,
+                    marginTop: 15,
                     fontFamily: 'Poppins-Bold',
                   }}>
-                  Services By Us
+                  CATEGORY
                 </Text>
 
                 <View style={{margin: 10}}>
@@ -701,7 +701,7 @@ function Home({navigation}) {
                               padding: 1,
                             }}>
                             {item ? (
-                              <View style={{marginTop: 10}}>
+                              <View style={{marginTop: 0}}>
                                 <View style={styles.servicesimgrow}>
                                   <Image
                                     source={{
@@ -1038,12 +1038,7 @@ function Home({navigation}) {
             </TouchableOpacity>
           </View>
         </ScrollView>
-        <TouchableOpacity
-          style={styles.floatingButton}
-          onPress={() => setOfferModalVisible(true)}>
-          <Text style={styles.floatingButtonText}>INDEPENDENCE DAY OFFERS</Text>
-        </TouchableOpacity>
-
+        
         {/* MODAL FOR OFFERS - UNCHANGED */}
         <Modal
           isVisible={isOfferModalVisible}
@@ -1452,12 +1447,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   trendingText1: {
-    color: 'darkred',
-    fontSize: 12,
+    color: '#f4f2f2',
+    fontSize: 18,
     fontFamily: 'Poppins-Medium',
     textAlign: 'left',
     marginBottom: 0,
-    marginLeft: 85,
+    marginLeft: 8,
   },
   backgroundImage: {
     width: '100%',

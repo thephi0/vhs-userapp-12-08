@@ -678,7 +678,7 @@ function Cartbook({navigation}) {
                     handleSlotClick1(index, `${slot.startTime}`)
                   }
                   style={[
-                    styles.slotButton,
+                    styles.slotButton1,
                     selectedSlot === `${slot.startTime}` &&
                       styles.selectedSlotButton,
                   ]}>
@@ -1341,8 +1341,8 @@ function Cartbook({navigation}) {
                           <Text
                             style={{
                               fontSize: 16,
-                              fontFamily: 'Poppins-Bold',
-                              color: 'darkred',
+                              fontFamily: 'Roboto',
+                              color: '#000000',
                             }}>
                             {item.planName}
                           </Text>
@@ -1350,7 +1350,7 @@ function Cartbook({navigation}) {
                             style={{
                               fontSize: 14,
                               fontFamily: 'Poppins-Bold',
-                              color: 'black',
+                              color: '#36454F',
                             }}>
                             {item.service?.serviceName}
                           </Text>
@@ -1358,14 +1358,15 @@ function Cartbook({navigation}) {
                           <View style={{flexDirection: 'row'}}>
                             <Text
                               style={{
-                                marginLeft: 10,
+                                marginLeft: 0,
                                 color: 'grey',
                                 textDecorationLine: 'line-through',
+                                fontSize: 16,
                               }}>
-                              <FontAwesome name="rupee" size={14} />
+                              
                               {item.planPrice}
                             </Text>
-                            <Text style={{marginLeft: 10, color: 'grey'}}>
+                            <Text style={{marginLeft: 10, color: 'grey', fontSize: 16}}>
                               <FontAwesome name="rupee" size={14} />{' '}
                               {item.offerprice}
                             </Text>
@@ -1399,13 +1400,18 @@ function Cartbook({navigation}) {
 
                         <View
                           style={{
-                            flexDirection: 'row',
-                            marginTop: 10,
-                            backgroundColor: 'green',
-                            elevation: 15,
-                            padding: 5,
-                            justifyContent: 'center',
-                            width: 100,
+                           flexDirection: 'row',
+                        marginTop: 4,
+                        backgroundColor: 'white',
+                       
+                        padding: 5,
+                        justifyContent: 'center',
+                        width: 80,
+                        borderColor: '#1434A4',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        marginLeft: 10,
+                          
                           }}>
                           <TouchableOpacity
                             style={{}}
@@ -1418,13 +1424,13 @@ function Cartbook({navigation}) {
                             }}>
                             <Text>
                               <AntDesign
-                                name="minuscircleo"
-                                size={18}
-                                color="white"
+                            name="minus"
+                            size={18}
+                            color="#1434A4"
                               />{' '}
                             </Text>
                           </TouchableOpacity>
-                          <Text style={{color: 'white', marginLeft: 5}}>
+                           <Text style={{color: '#1434A4', marginLeft: 5, fontFamily: 'Roboto-Bold', fontSize: 16, fontWeight: 'bold'}}>
                             {item.qty}
                           </Text>
 
@@ -1433,9 +1439,9 @@ function Cartbook({navigation}) {
                             onPress={() => handle(item)}>
                             <Text>
                               <AntDesign
-                                name="pluscircleo"
-                                size={18}
-                                color="white"
+                                  name="plus"
+                            size={18}
+                            color="#1434A4"
                               />
                             </Text>
                           </TouchableOpacity>
@@ -1661,13 +1667,15 @@ function Cartbook({navigation}) {
                 style={{
                   backgroundColor: 'white',
                   marginTop: 10,
-                  margin: 15,
+                  margin: 10,
                 }}>
                 <Text
                   style={{
                     color: 'black',
                     fontSize: 18,
                     fontFamily: 'Poppins-Medium',
+                    marginLeft:15,
+                    marginTop: 10
                   }}>
                   Coupons & Offers
                 </Text>
@@ -1683,6 +1691,7 @@ function Cartbook({navigation}) {
                         color: 'black',
                         fontSize: 14,
                         borderColor: '#E0E0E0',
+                        marginLeft:15
                       }}
                       onChangeText={text => setVoucherCode(text)}
                       placeholder="Enter Voucher Code"
@@ -1701,11 +1710,12 @@ function Cartbook({navigation}) {
                         setDiscountedTotal(result);
                       }}
                       style={{
-                        backgroundColor: 'darkred',
+                        backgroundColor: '#36454F',
                         padding: 10,
                         borderRadius: 5,
                         height: 45,
                         justifyContent: 'center',
+                        marginRight:20
                       }}>
                       <Text
                         style={{
@@ -1724,10 +1734,10 @@ function Cartbook({navigation}) {
             )}
             <View style={{margin: 15}}>
               <View style={{flexDirection: 'row'}}>
-                <Text style={{color: '#40A2D8'}}>*</Text>
+                <Text style={{color: '	#36454F'}}>*</Text>
                 <Text
                   style={{
-                    color: '#40A2D8',
+                    color: '#36454F',
                     fontFamily: 'Poppins-Medium',
                     textAlign: 'auto',
                     flexShr: 1,
@@ -1737,10 +1747,10 @@ function Cartbook({navigation}) {
                 </Text>
               </View>
               <View style={{flexDirection: 'row', marginTop: 5}}>
-                <Text style={{color: '#40A2D8'}}>*</Text>
+                <Text style={{color: '	#36454F'}}>*</Text>
                 <Text
                   style={{
-                    color: '#40A2D8',
+                    color: '#36454F',
                     fontFamily: 'Poppins-Medium',
                     textAlign: 'auto',
                     flexShr: 1,
@@ -1758,12 +1768,12 @@ function Cartbook({navigation}) {
               }}>
               <Text
                 style={{
-                  color: 'black',
-                  backgroundColor: 'rgb(214, 202, 140)',
+                  color: '	#191970',
+                 marginLeft:5,
                   width: 190,
-                  borderTopRightRadius: 80,
+                 fontWeight: 'bold',
                   padding: 3,
-                  fontSize: 17,
+                  fontSize: 20,
                   fontFamily: 'Poppins-Medium',
                 }}>
                 Payment summary
@@ -2067,7 +2077,7 @@ function Cartbook({navigation}) {
                         <Feather
                           name="calendar"
                           size={20}
-                          color="teal"
+                          color="#5D3FD3"
                           style={{paddingBottom: 4}}
                         />
                         <Text style={styles.dateButtonSubText}>Pick Date</Text>
@@ -2131,7 +2141,7 @@ function Cartbook({navigation}) {
               <View style={[styles.modalHeader, {justifyContent: 'space-between'}]}>
                 <Text style={styles.modalTitle}>Choose an Address</Text>
                 <TouchableOpacity onPress={() => setAddressModalVisible(false)}>
-                  <Text style={{color: 'teal', fontFamily: 'Poppins-Bold'}}>
+                  <Text style={{color: '#5D3FD3', fontFamily: 'Poppins-Bold'}}>
                     Done
                   </Text>
                 </TouchableOpacity>
@@ -2174,7 +2184,7 @@ function Cartbook({navigation}) {
                 <AntDesign
                   name="plus"
                   size={18}
-                  style={{color: 'teal', marginRight: 10}}
+                  style={{color: '#5D3FD3', marginRight: 10}}
                 />
                 <Text style={styles.addNewAddressText}>Add New Address</Text>
               </TouchableOpacity>
@@ -2452,7 +2462,7 @@ function Cartbook({navigation}) {
                                 setDiscountedTotal(result);
                               }}
                               style={{
-                                backgroundColor: 'darkred',
+                                backgroundColor: '#36454F',
                                 padding: 10,
                                 borderRadius: 5,
                                 height: 45,
@@ -2475,7 +2485,7 @@ function Cartbook({navigation}) {
                     <Text
                       style={{
                         color: 'black',
-                        backgroundColor: 'rgb(214, 202, 140)',
+                        
                         width: 190,
                         borderTopRightRadius: 80,
                         padding: 3,
@@ -2484,6 +2494,7 @@ function Cartbook({navigation}) {
                       }}>
                       Payment summary
                     </Text>
+                                        <View style={{borderBottomWidth: 1, borderColor: 'lightgray', marginVertical: 4}} />
 
                     <View
                       style={{
@@ -2680,7 +2691,7 @@ function Cartbook({navigation}) {
                 </ScrollView>
                 <View style={styles.bottomSheetFooter}>
                   <TouchableOpacity
-                    style={styles.primaryPaymentButton}
+                    style={styles.primaryPaymentButton1}
                     onPress={addtreatmentdetails}>
                     <Text style={styles.paymentButtonText}>Book Now</Text>
                   </TouchableOpacity>
@@ -2720,7 +2731,7 @@ function Cartbook({navigation}) {
                       }
                     />
                     <View style={styles.markerContent}>
-                      <FontAwesome name="map-pin" color={'green'} size={35} />
+                      <FontAwesome name="map-pin" color={'#5D3FD3'} size={35} />
                     </View>
                     <GooglePlacesAutocomplete
                       placeholder="Search location..."
@@ -2782,7 +2793,7 @@ function Cartbook({navigation}) {
                     <TouchableOpacity
                       onPress={getLocation}
                       style={{
-                        backgroundColor: 'orange',
+                        backgroundColor: '#5D3FD3',
                         padding: 10,
                         borderRadius: 5,
                         alignItems: 'center',
@@ -2955,7 +2966,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   bottomButton: {
-    backgroundColor: 'teal',
+    backgroundColor: '#5D3FD3',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -3000,12 +3011,12 @@ const styles = StyleSheet.create({
     width: '23%',
   },
   selectedDateButton: {
-    backgroundColor: 'teal',
+    backgroundColor: '#5D3FD3',
   },
   dateButtonText: {
     fontFamily: 'Poppins-Bold',
     fontSize: 18,
-    color: 'teal',
+    color: '#5D3FD3',
   },
   dateButtonSubText: {
     fontFamily: 'Poppins-Medium',
@@ -3034,8 +3045,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  slotButton: {
-    width: '31%',
+  slotButton1: {
+    width: '45%',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+    slotButton: {
+    width: '32%',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
@@ -3044,8 +3064,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   selectedSlotButton: {
-    backgroundColor: 'teal',
-    borderColor: 'teal',
+    backgroundColor: '#5D3FD3',
+    borderColor: '#5D3FD3',
   },
   slotButtonText: {
     color: 'black',
@@ -3055,7 +3075,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   confirmSlotButton: {
-    backgroundColor: 'teal',
+    backgroundColor: '#5D3FD3',
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
@@ -3084,7 +3104,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#f0f0f0',
   },
   addNewAddressText: {
-    color: 'teal',
+    color: '#5D3FD3',
     fontFamily: 'Poppins-Bold',
     fontSize: 16,
   },
@@ -3109,11 +3129,20 @@ const styles = StyleSheet.create({
     elevation: 3,
     width: '100%',
   },
+    primaryPaymentButton1: {
+    backgroundColor: '#00A36C',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    elevation: 3,
+    width: '100%',
+  },
   label: {
     color: 'black',
     fontSize: 13,
     fontFamily: 'Poppins-Bold',
     paddingBottom: 5,
+  
   },
   inputMap: {
     height: 45,
@@ -3126,7 +3155,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   submitButton: {
-    backgroundColor: 'darkred',
+    backgroundColor: '#36454F',
     width: '100%',
     padding: 10,
     alignItems: 'center',
