@@ -994,7 +994,7 @@ function Repairing({navigation}) {
                   fontWeight: 'bold',
                 
                 }}>
-                {cdata.subcategory}
+                {cdata.subcategory?.replace(/Varalakshmi\s*/gi, '')}
               </Text>
 
               <View
@@ -1246,7 +1246,7 @@ function Repairing({navigation}) {
         fontFamily: 'Poppins-Regular',
         
       }}>
-        (899 for 2 Bathrooms)
+        (for 2 Bathrooms)
       </Text>
     )}
                               

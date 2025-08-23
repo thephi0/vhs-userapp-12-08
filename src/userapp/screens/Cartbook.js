@@ -537,6 +537,100 @@ function Cartbook({navigation}) {
         return Carttotal;
       }
 
+      // Hardcoded coupons with service restrictions
+      const hardcodedCoupons = {
+        "VHS25E": {
+          "type": "conditional_flat",
+          "value": [100, 250], // [under 1000, above 1000]
+          "applicableServices": ["all"] // Applies to all services
+        },
+        "VHS100": {
+          "type": "flat",
+          "value": 100,
+          "applicableServices": [
+            "Bathroom Manual Cleaning - Rs.100 OFF",
+            "Bathroom Machine Cleaning - Rs.100 OFF"
+          ]
+        },
+        "VHS200": {
+          "type": "flat",
+          "value": 200,
+          "applicableServices": [
+            "Kitchen Cleaning Without Cabinet",
+            "Vacant Kitchen Cleaning without Chimney",
+            "Vacant Kitchen Cleaning with Chimney - Rs. 200 OFF",
+            "Occupied Kitchen Cleaning without Chimney - Rs. 200 OFF",
+            "Occupied Kitchen Cleaning with Chimney - Rs. 200 OFF"
+          ]
+        },
+        "VHS300": {
+          "type": "flat",
+          "value": 300,
+          "applicableServices": [
+            "Vacant Flat Cleaning + Rs. 300 OFF",
+            "Vacant 3 BHK Villa + Rs. 300 OFF"
+          ]
+        }
+      };
+
+      const couponCode = voucherCode.toUpperCase();
+      const hardcodedCoupon = hardcodedCoupons[couponCode];
+
+      // Check for hardcoded coupons first
+      if (hardcodedCoupon) {
+        // Get current cart services
+        const cartServices = MyCartItmes.map(item => item?.service?.serviceName || item?.planName || '');
+        
+        // Check if coupon is applicable to cart services
+        const isApplicable = hardcodedCoupon.applicableServices.includes("all") || 
+          hardcodedCoupon.applicableServices.some(service => 
+            cartServices.some(cartService => 
+              cartService.toLowerCase().includes(service.toLowerCase()) ||
+              service.toLowerCase().includes(cartService.toLowerCase())
+            )
+          );
+
+        if (!isApplicable) {
+          setValidationMessage(`This coupon is not applicable to your selected services`);
+          setAppliedCoupon(null);
+          setCouponDiscount(Carttotal);
+          return Carttotal;
+        }
+
+        const cartTotal = Carttotal + total1;
+        let discount = 0;
+        let description = '';
+
+        if (couponCode === 'VHS25E') {
+          if (cartTotal < 1000) {
+            discount = Math.min(100, cartTotal * 0.1); // Max 100 or 10% of cart
+            description = 'Flat ₹100 off on orders under ₹1000';
+          } else {
+            discount = 250; // Flat 250 off for orders above 1000
+            description = 'Flat ₹250 off on orders above ₹1000';
+          }
+        } else {
+          discount = Math.min(hardcodedCoupon.value, cartTotal); // Don't exceed cart total
+          description = `Flat ₹${hardcodedCoupon.value} off`;
+        }
+
+        const getResults = Math.max(0, cartTotal - discount); // Ensure non-negative result
+        setCouponDiscount(Math.max(0, getResults - total1)); // Adjust for addon total
+        setValidationMessage('');
+        setAppliedCoupon({
+          voucherCode: couponCode,
+          discountAmount: discount,
+          discountType: 'flat',
+          description: description
+        });
+        setCoupancode(couponCode); // Set for booking API
+
+        user.voucherCode = voucherCode;
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+        return Math.max(0, getResults - total1);
+      }
+
+      // Check API vouchers if hardcoded coupon not found
       const appliedCoupon = voucherdata.find(
         item => item.voucherCode === voucherCode,
       );
@@ -546,21 +640,27 @@ function Cartbook({navigation}) {
           appliedCoupon.discountPercentage,
           10,
         );
-        const discountAmount = (discountPercentageValue / 100) * Carttotal;
-        const getResults = Carttotal - discountAmount;
+        const discountAmount = (discountPercentageValue / 100) * (Carttotal + total1);
+        const getResults = (Carttotal + total1) - discountAmount;
 
-        setCouponDiscount(getResults);
+        setCouponDiscount(Math.max(0, getResults - total1));
         setValidationMessage('');
-        setAppliedCoupon(appliedCoupon);
+        setAppliedCoupon({
+          ...appliedCoupon,
+          discountAmount: discountAmount,
+          discountType: 'percentage'
+        });
+        setCoupancode(voucherCode); // Set for booking API
 
         user.voucherCode = voucherCode;
         await AsyncStorage.setItem('user', JSON.stringify(user));
 
-        return getResults;
+        return Math.max(0, getResults - total1);
       } else {
-        setValidationMessage('Invalid coupon');
+        setValidationMessage('Invalid coupon code');
         setAppliedCoupon(null);
         setCouponDiscount(Carttotal);
+        setCoupancode(''); // Clear coupon code
         return Carttotal;
       }
     } else {
@@ -1812,11 +1912,15 @@ function Cartbook({navigation}) {
                 </View>
                 <View style={{flex: 0.2, alignItems: 'flex-end'}}>
                   <View style={{flexDirection: 'row'}}>
-                    <Text style={styles.summarytext}>
-                      {couponDiscount !== Carttotal && appliedCoupon
-                        ? `${appliedCoupon.discountPercentage}%`
-                        : '0%'}
-                    </Text>
+                    {appliedCoupon ? (
+                      <View style={{alignItems: 'flex-end'}}>
+                        <Text style={[styles.summarytext, {color: 'green'}]}>
+                          ₹{appliedCoupon.discountAmount?.toFixed(0) || '0'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.summarytext}>₹0</Text>
+                    )}
                   </View>
                 </View>
               </View>
@@ -1850,22 +1954,23 @@ function Cartbook({navigation}) {
                   </View>
                 </View>
               </View>
-              {voucherCode ? (
+              {appliedCoupon ? (
                 <View style={{flexDirection: 'row', margin: 10}}>
                   <View style={{flex: 0.5}}>
-                    <Text style={styles.summarytext}>Coupon Code</Text>
+                    <Text style={styles.summarytext}>Coupon Applied</Text>
                   </View>
                   <View style={{flex: 0.5, alignItems: 'flex-end'}}>
-                    <View style={{flexDirection: 'row'}}>
-                      <Text style={{fontSize: 12, color: 'green'}}>
-                        {voucherCode ? voucherCode : ''}
+                    <View style={{flexDirection: 'column', alignItems: 'flex-end'}}>
+                      <Text style={{fontSize: 12, color: 'green', fontWeight: 'bold'}}>
+                        {appliedCoupon.voucherCode}
+                      </Text>
+                      <Text style={{fontSize: 10, color: 'green', textAlign: 'right'}}>
+                        {appliedCoupon.description || `Save ₹${appliedCoupon.discountAmount?.toFixed(0)}`}
                       </Text>
                     </View>
                   </View>
                 </View>
-              ) : (
-                <></>
-              )}
+              ) : null}
 
               {discountAmount && couponDiscount + total1 >= 1500 ? (
                 <View style={{flexDirection: 'row', margin: 5}}>
@@ -2533,11 +2638,15 @@ function Cartbook({navigation}) {
                         </View>
                         <View style={{flex: 0.2, alignItems: 'flex-end'}}>
                           <View style={{flexDirection: 'row'}}>
-                            <Text style={styles.summarytext}>
-                              {couponDiscount !== Carttotal && appliedCoupon
-                                ? `${appliedCoupon.discountPercentage}%`
-                                : '0%'}
-                            </Text>
+                            {appliedCoupon ? (
+                              <View style={{alignItems: 'flex-end'}}>
+                                <Text style={[styles.summarytext, {color: 'green'}]}>
+                                  ₹{appliedCoupon.discountAmount?.toFixed(0) || '0'}
+                                </Text>
+                              </View>
+                            ) : (
+                              <Text style={styles.summarytext}>₹0</Text>
+                            )}
                           </View>
                         </View>
                       </View>
@@ -2572,15 +2681,18 @@ function Cartbook({navigation}) {
                         </View>
                       </View>
 
-                      {voucherCode ? (
+                      {appliedCoupon ? (
                         <View style={{flexDirection: 'row', margin: 10}}>
                           <View style={{flex: 0.5}}>
-                            <Text style={styles.summarytext}>Coupon Code</Text>
+                            <Text style={styles.summarytext}>Coupon Applied</Text>
                           </View>
                           <View style={{flex: 0.5, alignItems: 'flex-end'}}>
-                            <View style={{flexDirection: 'row'}}>
-                              <Text style={{fontSize: 12, color: 'green'}}>
-                                {voucherCode ? voucherCode : ''}
+                            <View style={{flexDirection: 'column', alignItems: 'flex-end'}}>
+                              <Text style={{fontSize: 12, color: 'green', fontWeight: 'bold'}}>
+                                {appliedCoupon.voucherCode}
+                              </Text>
+                              <Text style={{fontSize: 10, color: 'green', textAlign: 'right'}}>
+                                {appliedCoupon.description || `Save ₹${appliedCoupon.discountAmount?.toFixed(0)}`}
                               </Text>
                             </View>
                           </View>
